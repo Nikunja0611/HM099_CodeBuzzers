@@ -1,0 +1,8 @@
+flask
+flask-cors
+flask-socketio
+pymongo
+firebase-admin
+scikit-learn
+pandas
+numpy
