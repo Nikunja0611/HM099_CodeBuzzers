@@ -1,55 +1,154 @@
 
-# ImpactHub
+# 🌍 AI-Powered SDG Collaboration & Impact Platform
 
-## Overview
-ImpactHub is a platform designed to amplify social impact and connect changemakers with opportunities to make a difference.
+![AI](https://img.shields.io/badge/AI-ML-blue)
+![NLP](https://img.shields.io/badge/NLP-TF--IDF-green)
+![Backend](https://img.shields.io/badge/Backend-FastAPI-teal)
+![Frontend](https://img.shields.io/badge/Frontend-React-blue)
+![Status](https://img.shields.io/badge/Status-Prototype-orange)
 
-## Features
-- 🎯 **Mission-Driven Projects** - Discover and contribute to meaningful initiatives
-- 👥 **Community Network** - Connect with like-minded collaborators and leaders
-- 📊 **Impact Tracking** - Measure and visualize your contribution metrics
-- 🔧 **Easy Integration** - Seamlessly integrate with existing workflows
+An AI-driven collaboration platform that connects NGOs, startups, governments, and researchers working on the United Nations Sustainable Development Goals (SDGs).  
+The system uses Natural Language Processing (NLP) and Machine Learning (ML) to automatically classify projects, recommend collaboration partners, and provide transparent SDG-aligned insights.
 
-## Getting Started
+---
 
-### Prerequisites
-- Node.js 14+
-- npm or yarn
+## 🚩 Problem Statement
 
-### Installation
-```bash
-git clone https://github.com/Nikunja0611/HM099_CodeBuzzers.git
-cd ImpactHub
-npm install
-```
+Organizations contributing to SDGs currently work in silos, leading to:
+- Difficulty in discovering suitable collaboration partners
+- Manual and inconsistent SDG classification
+- Lack of intelligent decision-support systems
+- Poor transparency in SDG progress tracking
 
-### Running the Project
-```bash
-npm start
-```
+There is no unified platform that combines AI-driven collaboration, SDG mapping, and analytics in one system.
 
-## Usage
-[Add your usage instructions here]
+---
 
-## Contributing
-We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+## 💡 Proposed Solution
 
-## License
-This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+This project introduces an AI-powered SDG Collaboration & Impact Platform that:
+- Automatically classifies projects into relevant SDGs using NLP
+- Recommends ideal partners using ML-based similarity scoring
+- Provides role-based dashboards for organizations and admins
+- Enables data-driven collaboration and SDG transparency
 
-## Project Architecture
+AI is the core engine of the system.
 
-ImpactHub is built on an AI-powered backend that intelligently matches organizations with SDG-aligned projects.
+---
 
-### Core AI/ML Features
-- **SDG Auto-Classification** - NLP-based automatic tagging of projects to UN Sustainable Development Goals
-- **Partner Recommendation Engine** - Content-based ML system matching organizations by shared SDGs and domain expertise
-- **Impact Progress Prediction** - Predictive modeling to identify projects on track or at risk
+## 👥 User Roles
 
-### Technology Stack
-- **Frontend:** React.js, Chart.js
-- **Backend:** Flask, REST APIs
-- **ML:** Python, Scikit-learn, TF-IDF vectorization
-- **Database:** MongoDB
-- **Authentication:** Firebase
+### Organization User
+- NGOs
+- Startups
+- Government bodies
+- Researchers
 
+### Admin
+- Platform analytics
+- SDG-wise project monitoring
+- User and project moderation
+
+---
+
+## ⚙️ Key Features
+
+### Organization Dashboard
+- Organization profile creation
+- Project creation with description
+- AI-based SDG auto-classification
+- ML-based partner recommendations
+- Project summary and status tracking
+- SDG impact visualization
+
+### Admin Dashboard
+- Platform-wide analytics
+- SDG-wise project distribution
+- Organization and project overview
+
+---
+
+## 🧠 AI / ML Implementation
+
+### 1️⃣ SDG Auto-Classification (NLP)
+- Input: Project title and description
+- Technique: TF-IDF vectorization (bi-grams)
+- Model: Logistic Regression (Multinomial)
+- Output: SDG labels with confidence scores
+
+### 2️⃣ Partner Recommendation Engine (ML)
+- Content-based recommendation system
+- TF-IDF + Cosine Similarity
+- Output: Ranked partner list with match percentage and explanation
+
+### 3️⃣ Impact Prediction (Future Scope)
+- Predicts project status: On Track / Delayed / At Risk
+- Planned using milestone and collaboration data
+
+---
+
+## 🏗️ System Architecture
+
+
+---
+
+## 🔄 User Flow
+
+### Organization User
+1. Register and login
+2. Create organization profile
+3. Create project
+4. AI auto-classifies SDGs
+5. View partner recommendations
+6. Track project summary and impact
+
+### Admin
+1. Login
+2. View analytics dashboard
+3. Monitor SDG-wise distribution
+
+---
+
+## 🧰 Technology Stack
+
+**Frontend:** React.js, Firebase Auth, Chart.js  
+**Backend:** FastAPI / Flask, REST APIs  
+**AI/ML:** Python, Scikit-learn, TF-IDF, Cosine Similarity  
+**Database:** MongoDB / PostgreSQL  
+**Deployment:** Vercel, Render / Railway
+
+---
+
+## 📁 Project Structure
+
+sdg-collab-platform/
+│
+├── frontend/
+├── backend/
+│ ├── ml/
+│ │ ├── sdg_classifier.py
+│ │ ├── recommender.py
+│ │ └── impact_predictor.py
+│ ├── data/
+│ └── main.py
+│
+├── README.md
+└── .gitignore
+
+---
+
+## 📊 Dataset Strategy
+- OSDG Community Dataset (open-source)
+- UN SDG descriptions
+- Synthetic project and organization data
+
+---
+
+## 🚀 Conclusion
+
+This platform demonstrates a viable, explainable, and scalable AI solution for SDG collaboration, combining real ML models with strong social impact and clear system design.
+
+---
+
+## 📜 License
+Educational and hackathon use only.
