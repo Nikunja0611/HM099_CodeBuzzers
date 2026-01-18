@@ -1,38 +1,36 @@
 <div align="center">
-```html
-<img src="./frontend/src/logo.svg" alt="ImpactHub Logo" width="120" height="120" />
+  <img src="./frontend/public/logo.jpeg" alt="ImpactHub Logo" width="120" height="120" />
 
-# 🌍 ImpactHub
-### AI-Powered SDG Collaboration Ecosystem
+  # 🌍 ImpactHub
+  ### AI-Powered SDG Collaboration Ecosystem
 
-<p>
+  <p>
     <b>Connect. Collaborate. Accelerate.</b><br>
     Bridging the gap between NGOs, Startups, and Governments to achieve the UN Sustainable Development Goals using Artificial Intelligence.
-</p>
+  </p>
 
-<p>
+  <p>
     <a href="https://reactjs.org/">
-        <img src="https://img.shields.io/badge/Frontend-React%20%7C%20Tailwind-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
+      <img src="https://img.shields.io/badge/Frontend-React%20%7C%20Tailwind-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
     </a>
     <a href="https://flask.palletsprojects.com/">
-        <img src="https://img.shields.io/badge/Backend-Flask%20API-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask" />
+      <img src="https://img.shields.io/badge/Backend-Flask%20API-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask" />
     </a>
     <a href="https://scikit-learn.org/">
-        <img src="https://img.shields.io/badge/AI-Scikit__Learn_%7C_BERT-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white" alt="AI" />
+      <img src="https://img.shields.io/badge/AI-Scikit__Learn_%7C_BERT-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white" alt="AI" />
     </a>
     <a href="https://www.mongodb.com/">
-        <img src="https://img.shields.io/badge/Database-MongoDB_Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
+      <img src="https://img.shields.io/badge/Database-MongoDB_Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
     </a>
-</p>
+  </p>
 
-<p>
+  <p>
     <a href="#-key-features">Key Features</a> •
     <a href="#-tech-stack">Tech Stack</a> •
     <a href="#-ai-architecture">AI Models</a> •
     <a href="#-setup--installation">Setup</a> •
     <a href="#-deployment">Deployment</a>
-</p>
-```
+  </p>
 </div>
 
 ---
@@ -111,5 +109,5 @@ Follow these steps to run the project locally.
 
 ### 1. Clone the Repository
 ```bash
-git clone [https://github.com/your-username/impacthub.git](https://github.com/your-username/impacthub.git)
+git clone [https://github.com/Nikunja0611/HM099_CodeBuzzers.git](https://github.com/Nikunja0611/HM099_CodeBuzzers.git)
 cd impacthub
