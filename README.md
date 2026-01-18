@@ -1,8 +1,4 @@
-Here is the updated `README.md`. I have completely redesigned the header for a professional look and stripped all emojis from the section headings, replacing them with bold text as requested.
 
----
-
-```markdown
 <div align="center">
   <br />
   <a href="https://impacthub-rho.vercel.app/" target="_blank">
