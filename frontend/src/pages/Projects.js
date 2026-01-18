@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { 
-  Search, Plus, Users, Target, TrendingUp, Loader2, Filter, ChevronDown 
+  Search, Plus, Users, Target, TrendingUp, Loader2, Filter, ChevronDown, MapPin, ArrowRight
 } from 'lucide-react';
 
 // Standard UN SDG Colors Mapping
@@ -26,6 +26,14 @@ const SDG_COLORS = {
   17: '#19486A', // Partnerships
 };
 
+// Tooltip Titles for SDGs
+const SDG_TITLES = {
+  1: 'No Poverty', 2: 'Zero Hunger', 3: 'Good Health', 4: 'Quality Education',
+  5: 'Gender Equality', 6: 'Clean Water', 7: 'Clean Energy', 8: 'Decent Work',
+  9: 'Industry', 10: 'Inequalities', 11: 'Sustainable Cities', 12: 'Consumption',
+  13: 'Climate Action', 14: 'Life Below Water', 15: 'Life on Land', 16: 'Peace', 17: 'Partnerships'
+};
+
 const Projects = () => {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
@@ -45,41 +53,36 @@ const Projects = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  // Updated Filtering Logic: Combines Search + Status + SDG
   const filteredProjects = projects.filter(p => {
-    // 1. Text Search (Title or Description)
     const matchesSearch = 
         (p.title && p.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    // 2. Status Filter
     const matchesStatus = statusFilter === 'All' || 
         (p.status && p.status.toLowerCase() === statusFilter.toLowerCase());
 
-    // 3. SDG Filter
     const matchesSDG = sdgFilter === 'All' || 
-        (p.sdg && p.sdg.toString() === sdgFilter.toString());
+        (p.sdg && (Array.isArray(p.sdg) ? p.sdg.includes(sdgFilter) : p.sdg.toString() === sdgFilter.toString()));
 
     return matchesSearch && matchesStatus && matchesSDG;
   });
 
-  // Helper for Status Badge styling
   const getStatusStyle = (status) => {
     switch(status?.toLowerCase()) {
         case 'active': return 'bg-green-50 text-green-700 border-green-100';
         case 'at risk': return 'bg-red-50 text-red-700 border-red-100';
-        case 'planning': return 'bg-gray-100 text-gray-600 border-gray-200';
-        default: return 'bg-teal-50 text-teal-700 border-teal-100';
+        case 'planning': return 'bg-blue-50 text-blue-700 border-blue-100';
+        default: return 'bg-gray-50 text-gray-700 border-gray-100';
     }
   };
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-teal-600" size={40}/></div>;
 
   return (
-    <div className="p-8 bg-[#F8F9FA] min-h-screen font-sans">
+    <div className="p-8 bg-gray-50 min-h-screen font-sans">
       
       {/* HEADER */}
-      <div className="flex justify-between items-start mb-8">
+      <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Projects</h1>
           <p className="text-gray-500 mt-1">Browse and manage SDG-aligned projects</p>
@@ -90,8 +93,7 @@ const Projects = () => {
       </div>
 
       {/* SEARCH & FILTERS TOOLBAR */}
-      <div className="flex flex-col md:flex-row gap-4 mb-8">
-        {/* Search Input */}
+      <div className="flex flex-col md:flex-row gap-4 mb-8 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input 
@@ -99,19 +101,17 @@ const Projects = () => {
             placeholder="Search projects..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none shadow-sm text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none text-sm transition-all"
           />
         </div>
         
-        {/* Filter Dropdowns */}
         <div className="flex gap-3">
-            {/* Status Filter */}
             <div className="relative">
                 <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
                 <select 
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="appearance-none pl-9 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+                    className="appearance-none pl-9 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer transition-colors"
                 >
                     <option value="All">All Status</option>
                     <option value="Active">Active</option>
@@ -121,13 +121,12 @@ const Projects = () => {
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
             </div>
 
-            {/* SDG Filter */}
             <div className="relative">
                 <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
                 <select 
                     value={sdgFilter}
                     onChange={(e) => setSdgFilter(e.target.value)}
-                    className="appearance-none pl-9 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+                    className="appearance-none pl-9 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer transition-colors"
                 >
                     <option value="All">All SDGs</option>
                     {Object.keys(SDG_COLORS).map(num => (
@@ -139,30 +138,30 @@ const Projects = () => {
         </div>
       </div>
 
-      <p className="text-sm text-gray-500 mb-4">
+      <p className="text-sm text-gray-500 mb-6 font-medium">
         Showing {filteredProjects.length} of {projects.length} projects
       </p>
 
       {/* PROJECT GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProjects.length === 0 ? (
-           <div className="col-span-3 py-12 text-center bg-white rounded-xl border border-dashed border-gray-300">
-             <p className="text-gray-400">No projects found matching your criteria.</p>
+           <div className="col-span-3 py-16 text-center bg-white rounded-xl border border-dashed border-gray-300">
+             <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <Search className="text-gray-400" />
+             </div>
+             <h3 className="text-lg font-medium text-gray-900">No projects found</h3>
+             <p className="text-gray-500 mt-1">Try adjusting your search or filters.</p>
            </div>
         ) : filteredProjects.map((p) => {
-            // Logic for Progress Bar
             const milestoneCount = p.milestones ? p.milestones.length : 0;
             const completedCount = p.milestones ? p.milestones.filter(m => m.completed).length : 0;
             const progress = milestoneCount > 0 ? (completedCount / milestoneCount) * 100 : 0;
-            
-            // Logic for SDG Color
-            const sdgColor = SDG_COLORS[p.sdg] || '#0ea5e9';
+            const sdgList = Array.isArray(p.sdg) ? p.sdg : [p.sdg];
 
             return (
-              <div key={p._id} onClick={() => navigate(`/projects/${p._id}`)} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg hover:border-teal-100 transition-all duration-200 cursor-pointer flex flex-col h-full group">
+              <div key={p._id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-xl transition-all duration-300 flex flex-col h-full group relative overflow-hidden">
                 
-                {/* 1. Header: Title & Status */}
-                <div className="flex justify-between items-start mb-1">
+                <div className="flex justify-between items-start mb-3">
                   <h3 className="font-bold text-gray-900 text-lg leading-tight group-hover:text-[#0f766e] transition-colors line-clamp-2 w-3/4">
                     {p.title}
                   </h3>
@@ -171,52 +170,73 @@ const Projects = () => {
                   </span>
                 </div>
                 
-                {/* 2. Subtitle: Owner/Org */}
-                <p className="text-xs font-medium text-gray-400 mb-4">{p.owner || 'Organization Name'}</p>
+                <p className="text-xs font-medium text-gray-500 mb-4 flex items-center gap-1">
+                    <Users size={12} /> {p.owner || 'Organization Name'}
+                </p>
                 
-                {/* 3. Description */}
                 <p className="text-sm text-gray-600 mb-6 line-clamp-3 leading-relaxed flex-grow">
                     {p.description}
                 </p>
                 
-                {/* 4. SDG Badge (Functional Color Mapping) */}
-                <div className="flex items-center gap-2 mb-5">
-                    <div 
-                        className="flex items-center gap-2 px-2 py-1 rounded-md text-white font-bold text-xs shadow-sm"
-                        style={{ backgroundColor: sdgColor }}
-                        title={`Sustainable Development Goal ${p.sdg}`}
-                    >
-                        <div className="w-1.5 h-1.5 bg-white rounded-full opacity-90"></div>
-                        SDG {p.sdg}
-                    </div>
+                {/* --- IMPROVED SDG ICONS (SQUARES) --- */}
+                <div className="flex items-center gap-2 mb-6 flex-wrap">
+                    {sdgList.slice(0, 4).map((sdg, i) => (
+                        <div 
+                            key={i}
+                            className="w-10 h-10 rounded-lg flex flex-col items-center justify-center text-white shadow-sm hover:scale-105 transition-transform cursor-help group/icon relative"
+                            style={{ backgroundColor: SDG_COLORS[sdg] || '#ccc' }}
+                        >
+                            {/* Number */}
+                            <span className="text-sm font-black leading-none">{sdg}</span>
+                            
+                            {/* Tiny label below number (optional visual detail) */}
+                            <span className="text-[6px] font-medium uppercase opacity-80 leading-none mt-0.5">Goal</span>
+
+                            {/* Tooltip on Hover */}
+                            <div className="absolute bottom-full mb-2 hidden group-hover/icon:block whitespace-nowrap bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg z-10">
+                                {SDG_TITLES[sdg] || `SDG ${sdg}`}
+                            </div>
+                        </div>
+                    ))}
+                    {sdgList.length > 4 && (
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xs border border-gray-200">
+                            +{sdgList.length - 4}
+                        </div>
+                    )}
                 </div>
 
-                {/* 5. Progress Bar */}
-                <div className="mb-4">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+                {/* Progress Bar */}
+                <div className="mb-6">
+                    <div className="flex justify-between text-xs text-gray-500 mb-2 font-medium">
                         <span>Progress</span>
-                        <span className="font-medium text-gray-700">{completedCount}/{milestoneCount || 4} milestones</span>
+                        <span>{completedCount}/{milestoneCount || 4} milestones</span>
                     </div>
-                    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
                         <div 
-                            className="h-full rounded-full transition-all duration-500"
+                            className="h-full rounded-full transition-all duration-700 ease-out"
                             style={{ 
-                                width: `${progress || 10}%`,
+                                width: `${progress || 5}%`,
                                 backgroundColor: p.status === 'At Risk' ? '#ef4444' : '#0f766e' 
                             }}
                         ></div>
                     </div>
                 </div>
 
-                {/* 6. Footer Metrics */}
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100 text-xs font-medium text-gray-500">
-                    <div className="flex items-center gap-4">
-                        <span className="flex items-center gap-1.5"><Users size={14} className="text-gray-400"/> {p.collaborators || 1}</span>
-                        <span className="flex items-center gap-1.5"><Target size={14} className="text-gray-400"/> {milestoneCount || 4}</span>
+                <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
+                    <div className="flex items-center gap-4 text-xs font-medium text-gray-500">
+                        <span className="flex items-center gap-1.5"><Users size={14}/> {p.collaborators || 1}</span>
+                        <span className="flex items-center gap-1.5 text-green-600 font-bold"><TrendingUp size={14}/> {p.impact_score || 0}%</span>
                     </div>
-                    <span className="font-bold text-gray-700 flex items-center gap-1">
-                        <TrendingUp size={14} className="text-green-600"/> {p.impact_score || 0}%
-                    </span>
+                    
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/projects/${p._id}`);
+                        }}
+                        className="text-teal-700 font-bold text-xs flex items-center gap-1 hover:gap-2 transition-all hover:text-teal-800 bg-teal-50 px-3 py-1.5 rounded-lg hover:bg-teal-100"
+                    >
+                        View Project <ArrowRight size={14} />
+                    </button>
                 </div>
               </div>
             );
