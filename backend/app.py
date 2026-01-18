@@ -1,5 +1,5 @@
-import eventlet
-eventlet.monkey_patch()
+#import eventlet
+#eventlet.monkey_patch()
 
 import os
 import pickle
@@ -8,7 +8,7 @@ import numpy as np
 import certifi
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit
+#from flask_socketio import SocketIO, emit
 from pymongo import MongoClient
 from datetime import datetime
 from bson.objectid import ObjectId
@@ -19,11 +19,17 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'impacthub_secret'
 # --- ADD CORS HERE ---
 # This allows requests specifically from your Vercel app
-# --- NUCLEAR CORS OPTION (Allow Everything) ---
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(
+    app,
+    resources={r"/api/*": {"origins": [
+        "https://impacthub-rho.vercel.app"
+    ]}}
+)
+
 
 # Ensure SocketIO is also permissive
-socketio = SocketIO(app, cors_allowed_origins="*")
+#socketio = SocketIO(app, cors_allowed_origins="*")
+
 
 # --- MONGODB CONNECTION ---
 username = quote_plus('sonawanenikunja_db_user')
@@ -277,5 +283,11 @@ def register_user():
     users_col.insert_one(user_data)
     return jsonify({"msg": "User registered"}), 201
 
-if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+@app.route("/")
+def health():
+    return {"status": "ok"}
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+

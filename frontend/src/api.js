@@ -5,6 +5,7 @@ import axios from 'axios';
 // 2. If deployed on Vercel, it uses the Environment Variable you set in the Vercel Dashboard
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+
 export const api = axios.create({
   baseURL: API_URL,
   headers: {
