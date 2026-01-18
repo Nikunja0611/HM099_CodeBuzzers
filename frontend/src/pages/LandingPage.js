@@ -2,7 +2,10 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Globe, Users, Sparkles, ArrowRight, Play, 
-  Layout, Target, BarChart3, Building, Leaf, CheckCircle 
+  Target, BarChart3, Building, Leaf, CheckCircle, Search, 
+  Wallet, Wheat, HeartPulse, BookOpen, Scale, Droplets, Zap, 
+  TrendingUp, Lightbulb, ArrowRightLeft, Building2, Recycle, 
+  CloudSun, Fish, TreeDeciduous, ShieldCheck, Link, Handshake
 } from 'lucide-react';
 
 const LandingPage = () => {
@@ -13,15 +16,19 @@ const LandingPage = () => {
       
       {/* --- NAVBAR --- */}
       <nav className="flex justify-between items-center px-8 py-4 sticky top-0 bg-white/90 backdrop-blur-md z-50 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center text-white font-bold">IH</div>
-          <span className="text-xl font-bold text-gray-900">ImpactHub</span>
-        </div>
+     <div className="flex items-center gap-2">
+  <img 
+    src="/logo.jpeg" 
+    alt="ImpactHub Logo" 
+    className="w-8 h-8 rounded-lg object-cover" 
+  />
+  <span className="text-xl font-bold text-gray-900">ImpactHub</span>
+</div>
         
         <div className="hidden md:flex gap-8 text-sm font-medium text-gray-600">
           <a href="#features" className="hover:text-teal-600 transition">Features</a>
           <a href="#sdgs" className="hover:text-teal-600 transition">SDG Goals</a>
-          <a href="#partners" className="hover:text-teal-600 transition">Partners</a>
+          
           <a href="#howitworks" className="hover:text-teal-600 transition">How It Works</a>
         </div>
 
@@ -35,7 +42,7 @@ const LandingPage = () => {
 
       {/* --- HERO SECTION --- */}
       <header className="relative pt-20 pb-32 overflow-hidden">
-        {/* Background Gradient matching Screenshot 3 & 4 */}
+        {/* Background Gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-500 z-0"></div>
         
         {/* Decorative Circles */}
@@ -67,7 +74,7 @@ const LandingPage = () => {
             </button>
           </div>
 
-          {/* Glassmorphism Stats Cards (Screenshot 1) */}
+          {/* Glassmorphism Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl hover:bg-white/15 transition">
               <Globe size={32} className="text-yellow-400 mx-auto mb-3" />
@@ -88,7 +95,7 @@ const LandingPage = () => {
         </div>
       </header>
 
-      {/* --- AI FEATURES SECTION (Screenshot 5) --- */}
+      {/* --- AI FEATURES SECTION --- */}
       <section id="features" className="py-24 bg-gray-50">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
@@ -134,61 +141,97 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* --- HOW IT WORKS (Screenshot 6) --- */}
+      {/* --- HOW IT WORKS (STATIC) --- */}
       <section id="howitworks" className="py-24 bg-white">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
              <span className="bg-yellow-50 text-yellow-700 px-4 py-1.5 rounded-full text-sm font-semibold">Simple Process</span>
              <h2 className="text-4xl font-bold text-gray-900 mt-4">How It <span className="text-teal-600">Works</span></h2>
+             <p className="text-gray-500 mt-4 max-w-xl mx-auto">A streamlined four-step process designed to get you from signup to impact as efficiently as possible.</p>
           </div>
 
           <div className="grid md:grid-cols-4 gap-8">
-             {[
-                { step: "01", title: "Create Profile", desc: "Register your organization & define SDG focus." },
-                { step: "02", title: "Discover Partners", desc: "AI surfaces relevant collaboration opportunities." },
-                { step: "03", title: "Collaborate", desc: "Use built-in tools for messaging & resource sharing." },
-                { step: "04", title: "Track Impact", desc: "Monitor progress with real-time transparent dashboards." },
-             ].map((item, i) => (
-                <div key={i} className="relative p-6 border border-gray-100 rounded-2xl bg-gray-50/50 hover:bg-white hover:shadow-lg transition">
-                   <div className="text-5xl font-bold text-gray-200 mb-4">{item.step}</div>
-                   <h3 className="text-lg font-bold text-gray-900 mb-2">{item.title}</h3>
-                   <p className="text-gray-500 text-sm">{item.desc}</p>
-                </div>
-             ))}
+            {[
+              { 
+                icon: <Building size={24} />, 
+                step: "01", 
+                title: "Create Profile", 
+                desc: "Register your organization & define your specific SDG focus areas."
+              },
+              { 
+                icon: <Search size={24} />, 
+                step: "02", 
+                title: "Discover Partners", 
+                desc: "Our AI engine surfaces relevant collaboration opportunities instantly."
+              },
+              { 
+                icon: <Users size={24} />, 
+                step: "03", 
+                title: "Collaborate", 
+                desc: "Use built-in messaging & tools to plan and execute projects."
+              },
+              { 
+                icon: <BarChart3 size={24} />, 
+                step: "04", 
+                title: "Track Impact", 
+                desc: "Monitor progress with real-time transparent dashboards."
+              },
+            ].map((item, i) => (
+              <div key={i} className="flex flex-col p-6 rounded-xl border border-gray-200 bg-gray-50">
+                  <div className="flex justify-between items-start mb-6">
+                      <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 flex items-center justify-center text-teal-600">
+                        {item.icon}
+                      </div>
+                      <span className="text-4xl font-bold text-gray-200 select-none">{item.step}</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">{item.title}</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-       {/* --- SDG GRID (Screenshot 2) --- */}
+       {/* --- SDG GRID (UNIQUE ICONS) --- */}
        <section id="sdgs" className="py-24 bg-slate-50">
         <div className="max-w-5xl mx-auto px-6 text-center">
             <span className="bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-sm font-semibold">UN Sustainable Development Goals</span>
             <h2 className="text-4xl font-bold mt-4 mb-4">Aligned With <span className="text-teal-600">Global Goals</span></h2>
             <p className="text-gray-500 mb-12 max-w-2xl mx-auto">Every project on our platform maps directly to the UN's 17 Sustainable Development Goals.</p>
             
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                {/* Standard UN SDG Colors */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {[
-                    {id:1, c: 'bg-[#E5243B]', t: "No Poverty"}, {id:2, c: 'bg-[#DDA63A]', t: "Zero Hunger"},
-                    {id:3, c: 'bg-[#4C9F38]', t: "Good Health"}, {id:4, c: 'bg-[#C5192D]', t: "Quality Education"},
-                    {id:5, c: 'bg-[#FF3A21]', t: "Gender Equality"}, {id:6, c: 'bg-[#26BDE2]', t: "Clean Water"},
-                    {id:7, c: 'bg-[#FCC30B]', t: "Clean Energy"}, {id:8, c: 'bg-[#A21942]', t: "Decent Work"},
-                    {id:9, c: 'bg-[#FD6925]', t: "Innovation"}, {id:10, c: 'bg-[#DD1367]', t: "Reduced Inequalities"},
-                    {id:11, c: 'bg-[#FD9D24]', t: "Sustainable Cities"}, {id:12, c: 'bg-[#BF8B2E]', t: "Responsible Consumption"},
-                    {id:13, c: 'bg-[#3F7E44]', t: "Climate Action"}, {id:14, c: 'bg-[#0A97D9]', t: "Life Below Water"},
-                    {id:15, c: 'bg-[#56C02B]', t: "Life on Land"}, {id:16, c: 'bg-[#00689D]', t: "Peace & Justice"},
-                    {id:17, c: 'bg-[#19486A]', t: "Partnerships"}, 
+                    {id:1, c: 'bg-[#E5243B]', t: "No Poverty", icon: <Wallet />}, 
+                    {id:2, c: 'bg-[#DDA63A]', t: "Zero Hunger", icon: <Wheat />},
+                    {id:3, c: 'bg-[#4C9F38]', t: "Good Health", icon: <HeartPulse />}, 
+                    {id:4, c: 'bg-[#C5192D]', t: "Quality Education", icon: <BookOpen />},
+                    {id:5, c: 'bg-[#FF3A21]', t: "Gender Equality", icon: <Scale />}, 
+                    {id:6, c: 'bg-[#26BDE2]', t: "Clean Water", icon: <Droplets />},
+                    {id:7, c: 'bg-[#FCC30B]', t: "Clean Energy", icon: <Zap />}, 
+                    {id:8, c: 'bg-[#A21942]', t: "Decent Work", icon: <TrendingUp />},
+                    {id:9, c: 'bg-[#FD6925]', t: "Innovation", icon: <Lightbulb />}, 
+                    {id:10, c: 'bg-[#DD1367]', t: "Reduced Inequalities", icon: <ArrowRightLeft />},
+                    {id:11, c: 'bg-[#FD9D24]', t: "Sustainable Cities", icon: <Building2 />}, 
+                    {id:12, c: 'bg-[#BF8B2E]', t: "Consumption", icon: <Recycle />},
+                    {id:13, c: 'bg-[#3F7E44]', t: "Climate Action", icon: <CloudSun />}, 
+                    {id:14, c: 'bg-[#0A97D9]', t: "Life Below Water", icon: <Fish />},
+                    {id:15, c: 'bg-[#56C02B]', t: "Life on Land", icon: <TreeDeciduous />}, 
+                    {id:16, c: 'bg-[#00689D]', t: "Peace & Justice", icon: <ShieldCheck />},
+                    {id:17, c: 'bg-[#19486A]', t: "Partnerships", icon: <Handshake />}, 
                 ].map((s) => (
-                    <div key={s.id} className={`${s.c} text-white p-4 rounded-lg shadow-sm hover:scale-105 transition cursor-pointer flex flex-col justify-center items-center aspect-square`}>
-                        <span className="text-2xl font-bold opacity-90">{s.id}</span>
-                        <span className="text-[10px] uppercase font-bold mt-1 leading-tight">{s.t}</span>
+                    <div key={s.id} className={`${s.c} text-white p-4 rounded-xl shadow-md hover:scale-105 transition-transform duration-200 cursor-pointer flex flex-col justify-center items-center h-32`}>
+                        {/* Medium Size Icon */}
+                        <div className="mb-2 w-8 h-8 flex items-center justify-center">
+                           {React.cloneElement(s.icon, { size: 32, strokeWidth: 2 })}
+                        </div>
+                        <span className="text-[10px] uppercase font-bold tracking-wide text-center leading-tight">{s.id}. {s.t}</span>
                     </div>
                 ))}
             </div>
         </div>
       </section>
 
-      {/* --- ROLE BASED SECTION (Screenshot 4) --- */}
+      {/* --- ROLE BASED SECTION --- */}
       <section className="py-24 bg-white">
         <div className="max-w-6xl mx-auto px-6">
             <div className="text-center mb-16">
