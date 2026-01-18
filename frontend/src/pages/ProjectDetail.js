@@ -4,20 +4,22 @@ import { api } from '../api';
 import { 
   ArrowLeft, Calendar, User, CheckCircle, Circle, 
   Target, TrendingUp, Zap, Handshake, MapPin, Loader2, 
-  ShieldCheck, AlertTriangle, Share2, Edit3, ExternalLink
+  Activity, Building, AlertTriangle
 } from 'lucide-react';
 
-// SDG Helper Data
-const SDG_DATA = {
-  1: { title: 'No Poverty', color: '#E5243B' },
-  2: { title: 'Zero Hunger', color: '#DDA63A' },
-  3: { title: 'Good Health', color: '#4C9F38' },
-  4: { title: 'Quality Education', color: '#C5192D' },
-  5: { title: 'Gender Equality', color: '#FF3A21' },
-  6: { title: 'Clean Water', color: '#26BDE2' },
-  7: { title: 'Clean Energy', color: '#FCC30B' },
-  13: { title: 'Climate Action', color: '#3F7E44' },
-  17: { title: 'Partnerships', color: '#19486A' },
+// Standard SDG Colors
+const SDG_COLORS = {
+  1: '#E5243B', 2: '#DDA63A', 3: '#4C9F38', 4: '#C5192D', 5: '#FF3A21',
+  6: '#26BDE2', 7: '#FCC30B', 8: '#A21942', 9: '#FD6925', 10: '#DD1367',
+  11: '#FD9D24', 12: '#BF8B2E', 13: '#3F7E44', 14: '#0A97D9', 15: '#56C02B',
+  16: '#00689D', 17: '#19486A'
+};
+
+const SDG_LABELS = {
+  1: 'No Poverty', 2: 'Zero Hunger', 3: 'Good Health', 4: 'Quality Education',
+  5: 'Gender Equality', 6: 'Clean Water', 7: 'Clean Energy', 8: 'Decent Work',
+  9: 'Industry', 10: 'Inequalities', 11: 'Sustainable Cities', 12: 'Consumption',
+  13: 'Climate Action', 14: 'Life Below Water', 15: 'Life on Land', 16: 'Peace', 17: 'Partnerships'
 };
 
 const ProjectDetails = () => {
@@ -41,7 +43,6 @@ const ProjectDetails = () => {
       setProject(projRes.data);
       setRecommendations(recRes.data);
 
-      // Fetch Impact Prediction
       if (projRes.data) {
          const impactRes = await api.post('/predict_impact', {
             milestones_pct: calculateProgress(projRes.data.milestones) / 100, 
@@ -65,37 +66,20 @@ const ProjectDetails = () => {
       return (completed / milestones.length) * 100;
   };
 
-  // --- HANDLERS ---
-
   const handleToggleMilestone = async (index) => {
     if (!project) return;
-    
-    // 1. Optimistic UI Update
     const newMilestones = [...project.milestones];
     newMilestones[index].completed = !newMilestones[index].completed;
     
     const updatedProject = { ...project, milestones: newMilestones };
-    setProject(updatedProject); // Update UI immediately
+    setProject(updatedProject); 
 
-    // 2. API Call to Save
     try {
         await api.put(`/projects/${id}`, { milestones: newMilestones });
     } catch (error) {
         console.error("Failed to save milestone", error);
-        alert("Failed to save. Reverting...");
-        fetchData(); // Revert on error
+        fetchData(); 
     }
-  };
-
-  const handleShare = () => {
-      navigator.clipboard.writeText(window.location.href);
-      alert("📋 Link copied to clipboard!");
-  };
-
-  const handleEdit = () => {
-      // In a real app, navigate to an edit page
-      alert("Edit mode would open here.");
-      navigate(`/projects/${id}/edit`);
   };
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-teal-600" size={40}/></div>;
@@ -109,205 +93,227 @@ const ProjectDetails = () => {
     <div className="bg-[#F8F9FA] min-h-screen pb-12 font-sans">
       
       {/* --- HEADER --- */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-            <button onClick={() => navigate('/projects')} className="flex items-center text-gray-500 hover:text-gray-900 mb-4 text-sm font-medium transition-colors">
-            <ArrowLeft size={16} className="mr-1"/> Back to Projects
-            </button>
-            
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-                <div className="flex items-center gap-3 mb-1">
-                    <h1 className="text-3xl font-bold text-gray-900">{project.title}</h1>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${project.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-blue-50 text-blue-700'}`}>
-                    {project.status || 'Planning'}
-                    </span>
-                </div>
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span className="flex items-center gap-1"><User size={14}/> {project.owner}</span>
-                    <span className="flex items-center gap-1"><Calendar size={14}/> Started {new Date(project.created_at).toLocaleDateString()}</span>
-                </div>
-            </div>
-            
-            <div className="flex gap-3">
-                <button onClick={handleEdit} className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 font-bold text-sm hover:bg-gray-50 flex items-center gap-2">
-                    <Edit3 size={16}/> Edit Project
-                </button>
-                <button onClick={handleShare} className="px-4 py-2 bg-teal-600 text-white rounded-lg font-bold text-sm hover:bg-teal-700 shadow-sm flex items-center gap-2">
-                    <Share2 size={16}/> Share Report
-                </button>
-            </div>
-            </div>
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm px-8 py-5">
+        <button onClick={() => navigate('/projects')} className="flex items-center text-gray-500 hover:text-gray-900 mb-4 text-sm font-medium transition-colors">
+          <ArrowLeft size={16} className="mr-1"/> Back to Projects
+        </button>
+        
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+           <div>
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-3xl font-bold text-gray-900">{project.title}</h1>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${project.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-blue-50 text-blue-700'}`}>
+                   {project.status || 'Planning'}
+                </span>
+              </div>
+              <div className="flex items-center gap-4 text-sm text-gray-500">
+                 <span className="flex items-center gap-1"><User size={14}/> {project.owner}</span>
+                 <span className="flex items-center gap-1"><Calendar size={14}/> Created {new Date(project.created_at).toLocaleDateString()}</span>
+              </div>
+           </div>
+           
+           <div className="flex gap-3">
+              <button onClick={() => navigate(`/projects/${id}/edit`)} className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 font-bold text-sm hover:bg-gray-50 transition">
+                  Edit Project
+              </button>
+              <button className="px-4 py-2 bg-teal-700 text-white rounded-lg font-bold text-sm hover:bg-teal-800 shadow-sm transition">
+                  Share Report
+              </button>
+           </div>
         </div>
       </div>
 
-      {/* --- MAIN CONTENT --- */}
       <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* LEFT COLUMN (2/3) */}
-        <div className="lg:col-span-2 space-y-8">
+        {/* --- LEFT COLUMN (MAIN CONTENT) --- */}
+        <div className="lg:col-span-2 space-y-6">
            
-           {/* ABOUT */}
-           <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+           {/* 1. ABOUT CARD */}
+           <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
               <h3 className="text-lg font-bold text-gray-900 mb-4">About This Project</h3>
-              <p className="text-gray-600 leading-relaxed text-base">
+              <p className="text-gray-600 leading-relaxed text-sm">
                 {project.description}
               </p>
            </div>
 
-           {/* SDG ALIGNMENT */}
-           <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+           {/* 2. AI CLASSIFIED SDG ALIGNMENT */}
+           <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
               <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                 <Zap className="text-teal-500" size={20}/> AI-Classified SDG Alignment
+                 <Zap className="text-teal-600" size={20}/> AI-Classified SDG Alignment
               </h3>
               
               <div className="flex flex-wrap gap-4">
-                 {sdgList.map((sdgNum, idx) => {
-                    const data = SDG_DATA[sdgNum] || { title: `Goal ${sdgNum}`, color: '#19486A' };
-                    return (
-                        <div key={idx} className="bg-white rounded-xl p-4 pr-8 border border-gray-100 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
-                           <div 
-                             className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-sm shrink-0"
-                             style={{ backgroundColor: data.color }}
-                           >
-                              {sdgNum}
-                           </div>
-                           <div>
-                                <h4 className="font-bold text-gray-900">{data.title}</h4>
-                                <p className="text-xs text-green-600 font-bold mt-0.5">
-                                    {(project.confidence || 0.85 * 100).toFixed(0)}% Match
-                                </p>
-                           </div>
-                        </div>
-                    );
-                 })}
+                 {sdgList.map((sdgNum, idx) => (
+                    <div key={idx} className="bg-gray-50 rounded-xl p-6 flex flex-col items-center justify-center min-w-[140px] border border-gray-100 flex-1">
+                       <div 
+                         className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl mb-3 shadow-md"
+                         style={{ backgroundColor: SDG_COLORS[sdgNum] || '#19486A' }}
+                       >
+                          {sdgNum}
+                       </div>
+                       <h4 className="font-bold text-gray-900 text-sm">{SDG_LABELS[sdgNum] || `Goal ${sdgNum}`}</h4>
+                       <p className="text-xs text-green-600 font-bold mt-1">
+                          {(project.confidence || 0.95 * 100).toFixed(0)}% Confidence
+                       </p>
+                    </div>
+                 ))}
               </div>
            </div>
 
-           {/* MILESTONES (INTERACTIVE) */}
-           <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-              <div className="flex justify-between items-center mb-6">
+           {/* 3. MILESTONES */}
+           <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
+              <div className="flex justify-between items-center mb-4">
                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Target size={20}/> Milestones</h3>
-                 <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold">{completedCount}/{project.milestones?.length || 0} Done</span>
+                 <span className="text-sm text-gray-500 font-medium">{completedCount}/{project.milestones?.length || 0} completed</span>
               </div>
               
-              {/* Progress Bar */}
-              <div className="w-full bg-gray-100 rounded-full h-2.5 mb-8">
-                 <div className="bg-teal-500 h-2.5 rounded-full transition-all duration-500 ease-out" style={{width: `${progressPct}%`}}></div>
+              <div className="w-full bg-gray-100 rounded-full h-2 mb-8">
+                 <div className="bg-teal-600 h-2 rounded-full transition-all duration-700" style={{width: `${progressPct}%`}}></div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                  {(!project.milestones || project.milestones.length === 0) ? (
-                    <p className="text-gray-400 italic text-center py-4">No milestones tracked yet.</p>
+                    <p className="text-gray-400 italic text-center py-4">No milestones added yet.</p>
                  ) : project.milestones.map((ms, i) => (
                     <div 
                         key={i} 
                         onClick={() => handleToggleMilestone(i)}
-                        className={`group flex items-center p-4 rounded-xl border cursor-pointer transition-all duration-200 ${ms.completed ? 'bg-green-50/50 border-green-200' : 'bg-white border-gray-100 hover:border-teal-300 hover:shadow-sm'}`}
+                        className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all ${
+                            ms.completed 
+                            ? 'bg-green-50 border-green-200' 
+                            : 'bg-white border-gray-200 hover:border-teal-300'
+                        }`}
                     >
-                       <div className={`mr-4 transition-colors ${ms.completed ? 'text-green-500' : 'text-gray-300 group-hover:text-teal-400'}`}>
-                          {ms.completed ? <CheckCircle size={24} fill="currentColor" className="text-green-100" /> : <Circle size={24}/>}
+                       <div className={`mr-4 ${ms.completed ? 'text-green-600' : 'text-gray-300'}`}>
+                          {ms.completed ? <CheckCircle size={24} fill="#d1fae5"/> : <Circle size={24}/>}
                        </div>
                        <div className="flex-1">
-                          <p className={`font-bold text-sm ${ms.completed ? 'text-green-800 line-through decoration-green-800/30' : 'text-gray-800'}`}>{ms.title}</p>
-                          <p className="text-xs text-gray-400 mt-1 flex items-center gap-1"><Calendar size={10}/> Due: {ms.date || 'Flexible'}</p>
+                          <p className={`font-bold text-sm ${ms.completed ? 'text-green-800 line-through' : 'text-gray-900'}`}>{ms.title}</p>
+                          <p className="text-xs text-gray-500 mt-1">Due: {ms.date || 'Flexible'}</p>
                        </div>
                     </div>
                  ))}
               </div>
            </div>
 
-        </div>
-
-        {/* RIGHT COLUMN (SIDEBAR) */}
-        <div className="space-y-6">
-           
-           {/* IMPACT SCORE */}
-           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4 flex items-center gap-2">
-                 <TrendingUp size={14}/> Impact Potential
-               </h3>
-               <div className="flex items-center gap-3 mb-2">
-                  <div className="relative w-16 h-16">
-                      <svg className="w-full h-full" viewBox="0 0 36 36">
-                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#eee" strokeWidth="3" />
-                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#0f766e" strokeWidth="3" strokeDasharray={`${project.impact_score}, 100`} />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center font-bold text-teal-700 text-sm">{project.impact_score}%</div>
-                  </div>
-                  <div>
-                      <h4 className="font-bold text-gray-900">High Impact</h4>
-                      <p className="text-xs text-gray-500">Predicted by Model 3</p>
-                  </div>
-               </div>
-           </div>
-
-           {/* AI STATUS */}
-           <div className={`rounded-2xl p-6 border ${aiStatus.status === 'On Track' ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
-               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-                 <ShieldCheck size={14}/> Status Forecast
-               </h3>
-               <div className="flex items-center gap-3">
-                   {aiStatus.status === 'On Track' ? <CheckCircle className="text-green-600" size={28}/> : <AlertTriangle className="text-red-600" size={28}/>}
-                   <div>
-                       <h4 className={`font-bold text-lg ${aiStatus.status === 'On Track' ? 'text-green-800' : 'text-red-800'}`}>{aiStatus.status}</h4>
-                       <p className="text-xs text-gray-500">Based on milestones & resources</p>
-                   </div>
-               </div>
-           </div>
-
-           {/* PARTNER RECOMMENDATIONS */}
+           {/* 4. AI PARTNER MATCHES (Moved Below Milestones) */}
            <div>
-               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Handshake className="text-teal-600" size={20}/> Partner Matches
+               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2 mt-8">
+                  <Handshake className="text-teal-700" size={20}/> AI Partner Matches
                </h3>
                
-               <div className="space-y-4">
+               {/* Used Grid here for wider layout */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {recommendations.length === 0 ? (
-                      <div className="p-6 bg-white rounded-xl text-center text-gray-400 text-sm border border-dashed border-gray-200">
+                      <div className="col-span-2 p-6 bg-white rounded-xl text-center text-gray-400 text-sm border border-dashed border-gray-200">
                           AI is analyzing partners...
                       </div>
                   ) : recommendations.map((rec) => (
-                      <div key={rec._id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:border-green-200 hover:shadow-md transition-all group">
+                      <div key={rec._id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:shadow-md transition-all h-full flex flex-col">
                           
-                          {/* Card Header */}
+                          {/* Header */}
                           <div className="flex justify-between items-start mb-3">
                              <div className="flex gap-3">
-                                 <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center font-bold text-teal-700 shrink-0">
-                                    {rec.orgName ? rec.orgName[0] : 'O'}
-                                 </div>
-                                 <div>
-                                     <h4 className="font-bold text-gray-900 text-sm leading-tight">{rec.orgName || rec.email}</h4>
-                                     <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
-                                        <MapPin size={10}/> {rec.location || 'Mumbai, India'}
-                                     </div>
-                                 </div>
+                                <div className="w-12 h-12 bg-[#0F766E] rounded-lg flex items-center justify-center text-white font-bold text-lg shrink-0">
+                                   <Building size={20} />
+                                </div>
+                                <div>
+                                   <h4 className="font-bold text-gray-900 text-sm leading-tight">{rec.orgName}</h4>
+                                   <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                                      <MapPin size={10}/> {rec.location || 'Global'}
+                                   </div>
+                                </div>
                              </div>
-                             <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded border border-gray-200 uppercase">
+                             <span className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded border border-green-100 uppercase">
                                 {rec.role || 'NGO'}
                              </span>
                           </div>
+                          
+                          <p className="text-xs text-gray-500 mb-4 line-clamp-2 flex-grow">
+                            {rec.description || `Specialized in ${rec.interests || 'sustainable development'}.`}
+                          </p>
 
-                          {/* Skills / Interests Pills */}
+                          {/* Skills Pills */}
                           <div className="flex flex-wrap gap-1.5 mb-4">
-                             <span className="px-2 py-0.5 rounded-full border border-gray-100 bg-gray-50 text-[10px] text-gray-500 font-medium">Climate Action</span>
-                             <span className="px-2 py-0.5 rounded-full border border-gray-100 bg-gray-50 text-[10px] text-gray-500 font-medium">Research</span>
+                             {(rec.skills ? rec.skills.split(',') : ['Collaboration', 'Research']).slice(0,3).map((skill, i) => (
+                                <span key={i} className="px-2 py-1 rounded-full border border-gray-200 text-[10px] text-gray-600 font-medium bg-gray-50">
+                                   {skill.trim()}
+                                </span>
+                             ))}
                           </div>
 
-                          {/* AI Score Section */}
-                          <div className="bg-green-50 rounded-lg p-3 mb-4 border border-green-100 flex justify-between items-center">
-                             <div>
-                                <span className="text-[10px] font-bold text-green-800 block">AI Match Score</span>
-                                <span className="text-[10px] text-green-600 flex items-center gap-1"><CheckCircle size={10}/> High Synergy</span>
+                          {/* AI Match Score Box */}
+                          <div className="bg-green-50 rounded-lg p-4 mb-4 border border-green-100">
+                             <div className="flex justify-between items-center mb-2">
+                                <span className="text-xs font-bold text-green-800">AI Match Score</span>
+                                <span className="text-lg font-black text-green-600">92%</span>
                              </div>
-                             <span className="text-xl font-black text-green-600">92%</span>
+                             <div className="space-y-1">
+                                <div className="flex items-center gap-1.5 text-[10px] text-gray-600">
+                                   <CheckCircle size={10} className="text-green-600"/> High SDG Overlap
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[10px] text-gray-600">
+                                   <CheckCircle size={10} className="text-green-600"/> Resource Compatible
+                                </div>
+                             </div>
                           </div>
 
-                          <button className="w-full py-2.5 bg-[#108a55] hover:bg-[#0d7547] text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm">
-                             <ExternalLink size={14}/> Request Partnership
+                          <button className="w-full py-2.5 bg-[#108a55] hover:bg-[#0d7547] text-white text-xs font-bold rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 mt-auto">
+                             <Handshake size={14}/> Request Partnership
                           </button>
                       </div>
                   ))}
+               </div>
+           </div>
+
+        </div>
+
+        {/* --- RIGHT COLUMN (SIDEBAR) --- */}
+        <div className="space-y-6">
+           
+           {/* 1. IMPACT SCORE */}
+           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4 flex items-center gap-2">
+                 <TrendingUp size={16}/> Impact Score
+               </h3>
+               <div className="text-center mb-4">
+                  <span className="text-6xl font-black text-teal-700 block">{project.impact_score || 0}%</span>
+                  <span className="text-sm text-gray-400 font-medium">Overall impact potential</span>
+               </div>
+               <p className="text-xs text-gray-500 text-center leading-relaxed border-t border-gray-100 pt-3">
+                  Based on resource allocation, SDG alignment, and milestone clarity.
+               </p>
+           </div>
+
+           {/* 2. AI STATUS FORECAST */}
+           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-6 flex items-center gap-2">
+                 <Activity size={16}/> AI Status Forecast
+               </h3>
+               
+               <div className="flex flex-col items-center text-center">
+                  {aiStatus.status === 'On Track' ? (
+                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-3">
+                         <CheckCircle size={32} strokeWidth={3}/>
+                      </div>
+                  ) : (
+                      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center text-red-600 mb-3">
+                         <AlertTriangle size={32} strokeWidth={3}/>
+                      </div>
+                  )}
+                  <h4 className={`text-xl font-bold ${aiStatus.status === 'On Track' ? 'text-green-700' : 'text-red-700'}`}>
+                     {aiStatus.status}
+                  </h4>
+                  <p className="text-xs text-gray-400 mt-1">100% Confidence</p>
+               </div>
+               
+               <div className="mt-6 space-y-2 border-t pt-4 border-gray-100">
+                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                     <CheckCircle size={12} className="text-green-500"/> Good milestone progress
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                     <CheckCircle size={12} className="text-green-500"/> High collaboration potential
+                  </div>
                </div>
            </div>
 

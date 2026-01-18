@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api'; 
 import { auth } from '../firebase'; 
@@ -155,10 +155,11 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* --- STATS GRID --- */}
+      {/* --- STATS GRID (UPDATED TO SHOW GLOBAL STATS) --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {[
-          { title: 'My Active Projects', value: myRecentProjects.length, icon: <Target size={24}/>, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: '+12%' },
+          // CHANGED: Now shows 'stats.active' instead of 'myRecentProjects.length'
+          { title: 'Total Active Projects', value: stats.active, icon: <Target size={24}/>, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: '+12%' },
           { title: 'Partners', value: stats.partners || 0, icon: <Users size={24}/>, color: 'text-blue-600', bg: 'bg-blue-50', trend: '+5%' },
           { title: 'Avg Impact Score', value: '78%', icon: <TrendingUp size={24}/>, color: 'text-purple-600', bg: 'bg-purple-50', trend: '+3%' },
           { title: 'Pending Requests', value: '0', icon: <Bell size={24}/>, color: 'text-orange-600', bg: 'bg-orange-50', trend: '0' },
@@ -199,8 +200,8 @@ const Dashboard = () => {
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-4xl font-extrabold text-gray-900">{stats.total}</span>
-                <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Total Projects</span>
+               <span className="text-4xl font-extrabold text-gray-900">{stats.total}</span>
+               <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Total Projects</span>
             </div>
           </div>
         </div>
@@ -278,21 +279,21 @@ const Dashboard = () => {
           ) : myActivity.map((p) => (
             <div key={p._id + 'activity'} className="flex gap-4 items-start p-4 hover:bg-[#F8F9FA] rounded-2xl transition-colors group cursor-default">
                <div className="mt-1 relative">
-                  <div className="bg-teal-100 p-2 rounded-full text-teal-600 z-10 relative group-hover:scale-110 transition-transform">
-                    <CheckCircle size={18} strokeWidth={2.5} />
-                  </div>
-                  <div className="absolute top-8 left-1/2 -translate-x-1/2 w-0.5 h-full bg-gray-100 -z-0 group-last:hidden"></div>
+                 <div className="bg-teal-100 p-2 rounded-full text-teal-600 z-10 relative group-hover:scale-110 transition-transform">
+                   <CheckCircle size={18} strokeWidth={2.5} />
+                 </div>
+                 <div className="absolute top-8 left-1/2 -translate-x-1/2 w-0.5 h-full bg-gray-100 -z-0 group-last:hidden"></div>
                </div>
                <div className="flex-1">
-                  <p className="text-gray-900 font-bold text-sm">
-                     You Created a Project: <span className="text-teal-700">{p.title}</span>
-                  </p>
-                  <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">{p.description.substring(0, 60)}...</p>
-                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-400 font-medium">
-                    <span className="flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded-md">
-                      <Clock size={12}/> {timeAgo(p.created_at)}
-                    </span>
-                  </div>
+                 <p className="text-gray-900 font-bold text-sm">
+                    You Created a Project: <span className="text-teal-700">{p.title}</span>
+                 </p>
+                 <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">{p.description.substring(0, 60)}...</p>
+                 <div className="flex items-center gap-3 mt-2 text-xs text-gray-400 font-medium">
+                   <span className="flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded-md">
+                     <Clock size={12}/> {timeAgo(p.created_at)}
+                   </span>
+                 </div>
                </div>
             </div>
           ))}
