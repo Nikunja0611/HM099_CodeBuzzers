@@ -17,6 +17,7 @@ import Projects from './pages/Projects';           // <--- THIS WAS MISSING
 import ProjectDetail from './pages/ProjectDetail'; // <--- THIS WAS MISSING
 import Partners from './pages/Partners';
 import Impact from './pages/Impact';
+import EditProject from './pages/EditProject';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -64,6 +65,7 @@ function App() {
                   <Route path="/projects/:id" element={<ProjectDetail />} />
                   <Route path="/partners" element={<Partners />} />
                   <Route path="/impact" element={<Impact />} />
+                  <Route path="/projects/:id/edit" element={<EditProject />} />
 
                   {/* Redirect unknown paths to dashboard */}
                   <Route path="*" element={<Navigate to="/dashboard" />} />
