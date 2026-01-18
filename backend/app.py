@@ -14,7 +14,11 @@ from urllib.parse import quote_plus
 # --- CONFIGURATION ---
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'impacthub_secret'
-CORS(app)
+# --- ADD CORS HERE ---
+CORS(app, resources={r"/*": {"origins": "*"}}) 
+# Note: Once your Vercel frontend is live (e.g., https://impacthub.vercel.app),
+# replace "*" with that specific URL for better security.
+
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # --- MONGODB CONNECTION ---

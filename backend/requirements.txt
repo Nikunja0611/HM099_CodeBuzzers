@@ -1,8 +1,11 @@
-flask
+Flask
 flask-cors
 flask-socketio
 pymongo
-firebase-admin
-scikit-learn
+certifi
+scikit-learn==1.6.1
 pandas
 numpy
+sentence-transformers
+gunicorn
+eventlet
