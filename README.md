@@ -1,40 +1,47 @@
+Here is the updated `README.md`. I have completely redesigned the header for a professional look and stripped all emojis from the section headings, replacing them with bold text as requested.
 
+---
+
+```markdown
 <div align="center">
-  <img src="./frontend/public/logo.jpeg" alt="ImpactHub Logo" width="120" height="120" />
+  <br />
+  <a href="https://impacthub-rho.vercel.app/" target="_blank">
+    <img src="./frontend/public/logo.jpeg" alt="ImpactHub Logo" width="100" height="100" style="border-radius: 20%; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  </a>
 
-  # 🌍 ImpactHub
-  ### AI-Powered SDG Collaboration Ecosystem
+  <h1 style="font-size: 3rem; margin-top: 10px; margin-bottom: 0;">ImpactHub</h1>
+  
+  <p style="font-size: 1.2rem; color: #555; font-weight: 500; margin-top: 5px;">
+    AI-Powered SDG Collaboration Ecosystem
+  </p>
 
-  <p>
+  <p style="max-width: 600px; margin: 0 auto; line-height: 1.6; color: #333;">
     <b>Connect. Collaborate. Accelerate.</b><br>
     Bridging the gap between NGOs, Startups, and Governments to achieve the UN Sustainable Development Goals using Artificial Intelligence.
   </p>
 
-  <p>
-    <a href="https://reactjs.org/">
-      <img src="https://img.shields.io/badge/Frontend-React%20%7C%20Tailwind-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
-    </a>
-    <a href="https://flask.palletsprojects.com/">
-      <img src="https://img.shields.io/badge/Backend-Flask%20API-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask" />
-    </a>
-    <a href="https://scikit-learn.org/">
-      <img src="https://img.shields.io/badge/AI-Scikit__Learn_%7C_BERT-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white" alt="AI" />
-    </a>
-    <a href="https://www.mongodb.com/">
-      <img src="https://img.shields.io/badge/Database-MongoDB_Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
-    </a>
-  </p>
+  <br />
 
   <p>
-    <a href="#-deployment-status">Deployment Status</a> •
-    <a href="#-ai-architecture-technical-deep-dive">AI Architecture</a> •
-    <a href="#-setup--installation">Setup</a>
+    <img src="https://img.shields.io/badge/Frontend-React_18-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
+    <img src="https://img.shields.io/badge/Style-Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind" />
+    <img src="https://img.shields.io/badge/Backend-Flask_API-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask" />
+    <img src="https://img.shields.io/badge/AI-Scikit__Learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white" alt="Scikit Learn" />
+    <img src="https://img.shields.io/badge/Database-MongoDB_Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
   </p>
+
+  <p style="font-size: 0.9rem; margin-top: 10px;">
+    <a href="#-deployment-status"><strong>Deployment Status</strong></a> •
+    <a href="#-ai-architecture-technical-deep-dive"><strong>AI Architecture</strong></a> •
+    <a href="#-setup--installation"><strong>Setup Guide</strong></a>
+  </p>
+
+  <br />
 </div>
 
 ---
 
-## ⚠️ Prototype Deployment Status
+## **Prototype Deployment Status**
 
 > **Just a quick note regarding our prototype deployment:**
 >
@@ -51,7 +58,7 @@
 
 ---
 
-## 📸 Project Interface
+## **Project Interface**
 
 | **Smart Dashboard** | **AI Partner Recommendations** |
 |:---:|:---:|
@@ -65,7 +72,7 @@
 
 ---
 
-## 🚩 Problem Statement
+## **Problem Statement**
 
 Organizations working on **Sustainable Development Goals (SDGs)** often operate in silos, leading to:
 * **Discovery Gap:** Finding the right collaboration partner takes months of manual searching.
@@ -74,26 +81,26 @@ Organizations working on **Sustainable Development Goals (SDGs)** often operate 
 
 ---
 
-## 💡 The Solution
+## **The Solution**
 
 **ImpactHub** is a unified platform that combines **Semantic Search**, **Predictive Analytics**, and **Dynamic Visualizations** to foster smarter collaboration. It replaces manual directories with intelligent, context-aware matching.
 
-### Key Features
+### **Key Features**
 
 | Feature | Description |
 | :--- | :--- |
-| **🤖 AI Auto-Classification** | Automatically tags projects with relevant SDGs (e.g., "Goal 6: Clean Water") using NLP, ensuring standardized data. |
-| **🤝 Smart Partner Matching** | Recommends partners based on **semantic similarity** of skills and past project history, with a "Local-First" prioritization. |
-| **🔮 Impact Predictor** | Forecasts if a project is **"On Track"** or **"At Risk"** based on milestones, budget utilization, and team size. |
-| **📊 Interactive Dashboards** | Visualizes global SDG efforts vs. individual organization performance using dynamic charts. |
+| **AI Auto-Classification** | Automatically tags projects with relevant SDGs (e.g., "Goal 6: Clean Water") using NLP, ensuring standardized data. |
+| **Smart Partner Matching** | Recommends partners based on **semantic similarity** of skills and past project history, with a "Local-First" prioritization. |
+| **Impact Predictor** | Forecasts if a project is **"On Track"** or **"At Risk"** based on milestones, budget utilization, and team size. |
+| **Interactive Dashboards** | Visualizes global SDG efforts vs. individual organization performance using dynamic charts. |
 
 ---
 
-## 🧠 AI Architecture: Technical Deep Dive
+## **AI Architecture: Technical Deep Dive**
 
 The platform is powered by three distinct machine learning pipelines. Below is the technical breakdown of each model.
 
-### 1️⃣ SDG Classification Pipeline (NLP)
+### **1. SDG Classification Pipeline (NLP)**
 **Goal:** Automatically classify project descriptions into one or more of the 17 UN SDGs.
 * **Notebook:** [View Colab Notebook](https://colab.research.google.com/drive/1TpeGCsX8JCaqv9L_Sq32mJjiU3PZkt2D?usp=sharing)
 
@@ -104,7 +111,7 @@ The platform is powered by three distinct machine learning pipelines. Below is t
 4.  **Inference:** The model accepts raw project text, vectorizes it, and returns the predicted SDG along with a confidence score.
 5.  **Persistence:** The vectorizer and classifier are serialized via `pickle` for instant deployment.
 
-### 2️⃣ Partner Recommendation Engine
+### **2. Partner Recommendation Engine**
 **Goal:** Recommend collaboration partners based on semantic alignment of project goals.
 * **Notebook:** [View Colab Notebook](https://colab.research.google.com/drive/1JHm6sZUu4SQWabV7yF-5ix91HgJbu7FV?usp=sharing)
 
@@ -115,7 +122,7 @@ The platform is powered by three distinct machine learning pipelines. Below is t
 4.  **Localization Logic:** A custom re-ranking layer prioritizes partners based in **India** using regex metadata checks, presenting "Local Matches" alongside "Global Matches".
 5.  **Output:** Returns a ranked list of partners with a percentage match score (e.g., "92% Match").
 
-### 3️⃣ Impact Prediction Model
+### **3. Impact Prediction Model**
 **Goal:** Forecast project health status ("On Track" vs "At Risk") using structured operational data.
 
 **Implementation Steps:**
@@ -129,7 +136,7 @@ The platform is powered by three distinct machine learning pipelines. Below is t
 
 ---
 
-## 🛠 Tech Stack
+## **Tech Stack**
 
 | Component | Technologies Used |
 | :--- | :--- |
@@ -141,18 +148,18 @@ The platform is powered by three distinct machine learning pipelines. Below is t
 
 ---
 
-## 🚀 Setup & Installation
+## **Setup & Installation**
 
 Follow these steps to run the full stack locally.
 
-### 1. Clone the Repository
+### **1. Clone the Repository**
 ```bash
 git clone [https://github.com/Nikunja0611/HM099_CodeBuzzers.git](https://github.com/Nikunja0611/HM099_CodeBuzzers.git)
 cd impacthub
 
 ```
 
-### 2. Backend Setup
+### **2. Backend Setup**
 
 ```bash
 cd backend
@@ -173,7 +180,7 @@ python app.py
 
 > Backend runs on `http://localhost:5000`
 
-### 3. Frontend Setup
+### **3. Frontend Setup**
 
 ```bash
 cd frontend
@@ -188,10 +195,6 @@ npm start
 
 ---
 
-## 📜 License
+## **License**
 
-This project was developed for the **HackMait 2024** Hackathon.
-
-```
-
-```
+This project was developed for the **HackMatrix 4.0 2026** Hackathon.
