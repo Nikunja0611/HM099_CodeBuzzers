@@ -16,19 +16,11 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'impacthub_secret'
 # --- ADD CORS HERE ---
 # This allows requests specifically from your Vercel app
-CORS(app, resources={r"/*": {
-    "origins": [
-        "https://impacthub-rho.vercel.app",  # Your Vercel Frontend
-        "http://localhost:3000",             # Local Development
-    ],
-    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    "allow_headers": ["Content-Type", "Authorization"]
-}})
+# --- NUCLEAR CORS OPTION (Allow Everything) ---
+CORS(app, resources={r"/*": {"origins": "*"}})
 
-socketio = SocketIO(app, cors_allowed_origins=[
-    "https://impacthub-rho.vercel.app", 
-    "http://localhost:3000"
-])
+# Ensure SocketIO is also permissive
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # --- MONGODB CONNECTION ---
 username = quote_plus('sonawanenikunja_db_user')
