@@ -21,11 +21,31 @@ import EditProject from './pages/EditProject';
 import PartnershipProposal from './pages/PartnershipProposal';
 import GrantApplication from './pages/GrantApplication';
 
+// --- ADMIN PAGES ---
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
+
+// --- SECURITY WRAPPER (Add This) ---
+const AdminProtectedRoute = ({ children }) => {
+  // Check LocalStorage directly to persist across refreshes
+  const isAuthenticated = localStorage.getItem('adminAuth') === 'true';
+  
+  if (!isAuthenticated) {
+    // If not admin, redirect to Admin Login immediately
+    return <Navigate to="/admin" replace />;
+  }
+  
+  // If admin, render the Dashboard
+  return children;
+};
+
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // We keep this state to force re-renders when login happens
+  const [adminAuth, setAdminAuth] = useState(localStorage.getItem('adminAuth') === 'true');
 
-  // Check if user is logged in via Firebase
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
@@ -44,14 +64,35 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Route: Landing Page */}
+        {/* --- PUBLIC ROUTES --- */}
         <Route path="/" element={<LandingPage />} />
         
-        {/* Auth Routes */}
+        {/* --- AUTH ROUTES --- */}
         <Route path="/login" element={!user ? <Login setUser={setUser} /> : <Navigate to="/dashboard" />} />
         <Route path="/register" element={!user ? <Register setUser={setUser} /> : <Navigate to="/dashboard" />} />
 
-        {/* Protected Routes */}
+        {/* --- ADMIN ROUTES (SECURED) --- */}
+        <Route 
+          path="/admin" 
+          element={
+            // If already logged in, go to dashboard, else show login
+            localStorage.getItem('adminAuth') === 'true' 
+            ? <Navigate to="/admin/dashboard" /> 
+            : <AdminLogin setAdminAuth={setAdminAuth} />
+          } 
+        />
+        
+        {/* THIS IS THE FIXED ROUTE */}
+        <Route 
+          path="/admin/dashboard" 
+          element={
+            <AdminProtectedRoute>
+               <AdminDashboard />
+            </AdminProtectedRoute>
+          } 
+        />
+
+        {/* --- USER PROTECTED ROUTES --- */}
         <Route 
           path="/*" 
           element={
@@ -61,21 +102,13 @@ function App() {
                 <Routes>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/new-project" element={<CreateProject />} />
-                  
-                  {/* Project Routes */}
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/projects/:id" element={<ProjectDetail />} />
                   <Route path="/projects/:id/edit" element={<EditProject />} />
-                  
-                  {/* Partner & Impact Routes */}
                   <Route path="/partners" element={<Partners />} />
                   <Route path="/impact" element={<Impact />} />
-
-                  {/* NEW PROPOSAL ROUTES */}
                   <Route path="/proposals/partnership" element={<PartnershipProposal />} />
                   <Route path="/proposals/grant" element={<GrantApplication />} />
-
-                  {/* Redirect unknown paths */}
                   <Route path="*" element={<Navigate to="/dashboard" />} />
                 </Routes>
                 <ChatWidget />

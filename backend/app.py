@@ -343,5 +343,60 @@ def register_user():
     users_col.insert_one(user_data)
     return jsonify({"msg": "User registered"}), 201
 
+# --- ADMIN ENDPOINTS ---
+
+@app.route('/api/admin/stats', methods=['GET'])
+def get_admin_stats():
+    # 1. User Stats & Distribution
+    total_users = users_col.count_documents({})
+    
+    # Aggregation pipeline to count users by Role (NGO, Startup, etc.)
+    user_dist_pipeline = [
+        {"$group": {"_id": "$role", "count": {"$sum": 1}}}
+    ]
+    user_distribution = list(users_col.aggregate(user_dist_pipeline))
+    # Format for frontend: [{'name': 'NGO', 'value': 10}, ...]
+    formatted_dist = [{'name': d['_id'] or 'Unknown', 'value': d['count']} for d in user_distribution]
+
+    # 2. Project Stats
+    total_projects = projects_col.count_documents({})
+    active_projects = projects_col.count_documents({'status': 'Active'}) # Specifically counting ACTIVE
+    
+    # 3. AI Model Health Check
+    ai_status = {
+        'sdg_classifier': 'Active' if 'sdg_clf' in models else 'Offline',
+        'status_predictor': 'Active' if 'status_pipeline' in models else 'Offline',
+        'recommender': 'Active' if 'sbert' in models or 'rec_vec' in models else 'Offline'
+    }
+    
+    # 4. Recent Activity (Last 5 users or projects)
+    # Fetching last 5 actions for the "Activity Log" feature
+    recent_projects = list(projects_col.find({}, {'title': 1, 'created_at': 1}).sort('created_at', -1).limit(5))
+    
+    return jsonify({
+        'total_users': total_users,
+        'user_distribution': formatted_dist, # NEW: Sends breakdown of user types
+        'total_projects': total_projects,
+        'active_projects': active_projects,  # NEW: Sends specifically active count
+        'ai_status': ai_status,
+        'recent_activity': [serialize_doc(p) for p in recent_projects]
+    })
+
+@app.route('/api/admin/users', methods=['GET'])
+def get_all_users():
+    # Fetch all users but exclude passwords
+    users = list(users_col.find({}, {'password': 0}).sort('_id', -1))
+    return jsonify([serialize_doc(u) for u in users])
+
+@app.route('/api/admin/users/<id>', methods=['DELETE'])
+def delete_user(id):
+    users_col.delete_one({'_id': ObjectId(id)})
+    return jsonify({'msg': 'User deleted'})
+
+@app.route('/api/admin/projects/<id>', methods=['DELETE'])
+def delete_project(id):
+    projects_col.delete_one({'_id': ObjectId(id)})
+    return jsonify({'msg': 'Project deleted'})
+
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
