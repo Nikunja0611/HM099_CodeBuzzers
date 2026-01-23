@@ -2,28 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { 
-  Search, Plus, Users, Target, TrendingUp, Loader2, Filter, ChevronDown, MapPin, ArrowRight
+  Search, Plus, Users, Target, TrendingUp, Loader2, Filter, ChevronDown, ArrowRight
 } from 'lucide-react';
 
 // Standard UN SDG Colors Mapping
 const SDG_COLORS = {
-  1: '#E5243B', // No Poverty
-  2: '#DDA63A', // Zero Hunger
-  3: '#4C9F38', // Good Health
-  4: '#C5192D', // Quality Education
-  5: '#FF3A21', // Gender Equality
-  6: '#26BDE2', // Clean Water
-  7: '#FCC30B', // Affordable Energy
-  8: '#A21942', // Decent Work
-  9: '#FD6925', // Industry/Infra
-  10: '#DD1367', // Reduced Inequality
-  11: '#FD9D24', // Sustainable Cities
-  12: '#BF8B2E', // Consumption
-  13: '#3F7E44', // Climate Action
-  14: '#0A97D9', // Life Below Water
-  15: '#56C02B', // Life on Land
-  16: '#00689D', // Peace/Justice
-  17: '#19486A', // Partnerships
+  1: '#E5243B', 2: '#DDA63A', 3: '#4C9F38', 4: '#C5192D', 5: '#FF3A21',
+  6: '#26BDE2', 7: '#FCC30B', 8: '#A21942', 9: '#FD6925', 10: '#DD1367',
+  11: '#FD9D24', 12: '#BF8B2E', 13: '#3F7E44', 14: '#0A97D9', 15: '#56C02B',
+  16: '#00689D', 17: '#19486A'
 };
 
 // Tooltip Titles for SDGs
@@ -44,13 +31,47 @@ const Projects = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [sdgFilter, setSdgFilter] = useState('All');
 
+  // Helper to calculate progress percentage
+  const calculateProgress = (milestones) => {
+    if (!milestones || milestones.length === 0) return 0;
+    const completed = milestones.filter(m => m.completed).length;
+    return (completed / milestones.length) * 100;
+  };
+
   useEffect(() => {
-    api.get('/projects')
-      .then(res => {
-        setProjects(res.data);
-      })
-      .catch(err => console.error(err))
-      .finally(() => setLoading(false));
+    const fetchProjectsWithAI = async () => {
+        try {
+            const res = await api.get('/projects');
+            const loadedProjects = res.data;
+
+            // Fetch AI Status for each project to ensure list view matches Details view
+            const enrichedProjects = await Promise.all(loadedProjects.map(async (p) => {
+                try {
+                    // Using the same logic/constants as ProjectDetails to get consistent status
+                    const aiRes = await api.post('/predict_impact', {
+                        milestones_pct: calculateProgress(p.milestones) / 100, 
+                        time_elapsed_pct: 0.2, // Consistent with ProjectDetails default
+                        collaborators: p.collaborators || 1,
+                        resource_availability: p.resource_availability || 'Medium',
+                        budget_pct: p.budget_pct || 10
+                    });
+                    // Override the DB status with the fresh AI status
+                    return { ...p, status: aiRes.data.status };
+                } catch (err) {
+                    console.error("AI Status fetch failed for", p.title);
+                    return p; // Fallback to DB status
+                }
+            }));
+
+            setProjects(enrichedProjects);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    fetchProjectsWithAI();
   }, []);
 
   const filteredProjects = projects.filter(p => {
@@ -69,7 +90,9 @@ const Projects = () => {
 
   const getStatusStyle = (status) => {
     switch(status?.toLowerCase()) {
-        case 'active': return 'bg-green-50 text-green-700 border-green-100';
+        case 'excellent': return 'bg-sky-50 text-sky-700 border-sky-100'; // New AI Status
+        case 'on track': // AI Status
+        case 'active': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
         case 'at risk': return 'bg-red-50 text-red-700 border-red-100';
         case 'planning': return 'bg-blue-50 text-blue-700 border-blue-100';
         default: return 'bg-gray-50 text-gray-700 border-gray-100';
@@ -114,7 +137,8 @@ const Projects = () => {
                     className="appearance-none pl-9 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer transition-colors"
                 >
                     <option value="All">All Status</option>
-                    <option value="Active">Active</option>
+                    <option value="Excellent">Excellent</option>
+                    <option value="On Track">On Track</option>
                     <option value="At Risk">At Risk</option>
                     <option value="Planning">Planning</option>
                 </select>
@@ -154,8 +178,7 @@ const Projects = () => {
            </div>
         ) : filteredProjects.map((p) => {
             const milestoneCount = p.milestones ? p.milestones.length : 0;
-            const completedCount = p.milestones ? p.milestones.filter(m => m.completed).length : 0;
-            const progress = milestoneCount > 0 ? (completedCount / milestoneCount) * 100 : 0;
+            const progress = calculateProgress(p.milestones);
             const sdgList = Array.isArray(p.sdg) ? p.sdg : [p.sdg];
 
             return (
@@ -189,7 +212,7 @@ const Projects = () => {
                             {/* Number */}
                             <span className="text-sm font-black leading-none">{sdg}</span>
                             
-                            {/* Tiny label below number (optional visual detail) */}
+                            {/* Tiny label below number */}
                             <span className="text-[6px] font-medium uppercase opacity-80 leading-none mt-0.5">Goal</span>
 
                             {/* Tooltip on Hover */}
@@ -209,14 +232,14 @@ const Projects = () => {
                 <div className="mb-6">
                     <div className="flex justify-between text-xs text-gray-500 mb-2 font-medium">
                         <span>Progress</span>
-                        <span>{completedCount}/{milestoneCount || 4} milestones</span>
+                        <span>{p.milestones ? p.milestones.filter(m=>m.completed).length : 0}/{milestoneCount || 4} milestones</span>
                     </div>
                     <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
                         <div 
                             className="h-full rounded-full transition-all duration-700 ease-out"
                             style={{ 
                                 width: `${progress || 5}%`,
-                                backgroundColor: p.status === 'At Risk' ? '#ef4444' : '#0f766e' 
+                                backgroundColor: p.status === 'At Risk' ? '#ef4444' : (p.status === 'Excellent' ? '#0284c7' : '#0f766e')
                             }}
                         ></div>
                     </div>

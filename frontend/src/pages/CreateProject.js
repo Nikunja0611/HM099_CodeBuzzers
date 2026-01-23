@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { auth } from '../firebase';
-import { Sparkles, Plus, Trash2, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { Sparkles, Plus, Trash2, CheckCircle, Loader2, AlertCircle, MapPin } from 'lucide-react';
 
 const CreateProject = () => {
   const navigate = useNavigate();
@@ -10,20 +10,72 @@ const CreateProject = () => {
     title: '',
     description: '',
     resource_availability: 'Medium',
-    budget_pct: 0
+    budget_pct: 0,
+    location: '' 
   });
   const [milestones, setMilestones] = useState([{ title: '', date: '' }]);
   
-  // --- AI STATE ---
+  // AI & Form State
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResults, setAiResults] = useState([]);
-  
-  // CHANGED: State is now an Array
   const [selectedSDGs, setSelectedSDGs] = useState(["17"]); 
-
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  // Location Autocomplete State
+  const [locationSuggestions, setLocationSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const wrapperRef = useRef(null); // To handle clicking outside
+
+  // --- LOCATION SEARCH LOGIC ---
+  useEffect(() => {
+    // Debounce the API call to avoid spamming while typing
+    const delayDebounceFn = setTimeout(async () => {
+      if (formData.location.length > 2 && showSuggestions) {
+        setIsSearchingLocation(true);
+        try {
+          // Using OpenStreetMap Nominatim API (Free, No Key Required for demo)
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${formData.location}&limit=5`
+          );
+          const data = await response.json();
+          setLocationSuggestions(data);
+        } catch (error) {
+          console.error("Location API Error:", error);
+        } finally {
+          setIsSearchingLocation(false);
+        }
+      } else {
+        setLocationSuggestions([]);
+      }
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [formData.location, showSuggestions]);
+
+  // Close dropdown if clicked outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [wrapperRef]);
+
+  const handleLocationSelect = (suggestion) => {
+    // Update input with the selected address
+    setFormData({ ...formData, location: suggestion.display_name });
+    setShowSuggestions(false);
+  };
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (e.target.name === 'location') {
+        setShowSuggestions(true);
+    }
+  };
 
   const handleMilestoneChange = (index, field, value) => {
     const newMs = [...milestones];
@@ -31,15 +83,13 @@ const CreateProject = () => {
     setMilestones(newMs);
   };
 
-  // Toggle Logic for Multi-Selection
   const toggleSDG = (sdgValue) => {
+    const val = String(sdgValue);
     setSelectedSDGs(prev => {
-      if (prev.includes(sdgValue)) {
-        // Remove if exists (prevent removing if it's the only one?)
-        return prev.length > 1 ? prev.filter(s => s !== sdgValue) : prev;
+      if (prev.includes(val)) {
+        return prev.length > 1 ? prev.filter(s => s !== val) : prev;
       } else {
-        // Add if not exists
-        return [...prev, sdgValue];
+        return [...prev, val];
       }
     });
   };
@@ -54,9 +104,8 @@ const CreateProject = () => {
       const results = Array.isArray(res.data) ? res.data : [];
       setAiResults(results);
 
-      // CHANGED: Auto-select ALL SDGs detected by AI (above threshold)
       if (results.length > 0) {
-        const detectedSDGs = results.map(r => r.sdg);
+        const detectedSDGs = results.map(r => String(r.sdg));
         setSelectedSDGs(detectedSDGs);
       } else {
         alert("AI could not confidently classify. Defaulting to SDG 17.");
@@ -77,21 +126,36 @@ const CreateProject = () => {
 
     setIsSubmitting(true);
     try {
+      const sdgScores = {};
+      let maxConfidence = 0;
+
+      selectedSDGs.forEach(sdg => {
+          const match = aiResults.find(r => String(r.sdg) === String(sdg));
+          let score = 85; 
+          if (match) {
+             score = parseInt((match.confidence * 100).toFixed(0));
+          }
+          sdgScores[String(sdg)] = score;
+          if (score > maxConfidence) maxConfidence = score;
+      });
+
       const payload = {
-        ...formData,
+        ...formData, 
         milestones,
-        sdg: selectedSDGs, // SEND ARRAY TO BACKEND
+        sdg: selectedSDGs, 
         owner: auth.currentUser?.email || "Anonymous",
         collaborators: 1,
         milestones_pct: 0,
         time_elapsed_pct: 0,
         status: "Planning",
+        confidence: maxConfidence, 
+        sdg_scores: sdgScores, 
         created_at: new Date().toISOString()
       };
 
       await api.post('/projects', payload);
       alert("✅ Project Created Successfully!");
-      navigate('/dashboard');
+      navigate('/projects');
     } catch (error) {
       console.error(error);
       alert("Failed to create project");
@@ -112,12 +176,49 @@ const CreateProject = () => {
              <input name="title" onChange={handleInputChange} placeholder="Project Title" className="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-teal-500" />
              <textarea name="description" onChange={handleInputChange} rows="4" placeholder="Project Description..." className="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-teal-500" />
              
+             {/* LOCATION FIELD WITH AUTOCOMPLETE */}
+             <div ref={wrapperRef} className="relative">
+                <label className="text-sm font-bold text-gray-700">Target Location</label>
+                <div className="relative mt-1">
+                    <MapPin className="absolute left-3 top-3.5 text-gray-400" size={18}/>
+                    <input 
+                        name="location" 
+                        value={formData.location}
+                        onChange={handleInputChange} 
+                        autoComplete="off"
+                        placeholder="Start typing to search (e.g. Pune)..."
+                        className="w-full pl-10 p-3 border rounded-lg outline-none focus:ring-2 focus:ring-teal-500" 
+                    />
+                    {isSearchingLocation && (
+                        <div className="absolute right-3 top-3.5">
+                            <Loader2 className="animate-spin text-teal-600" size={18} />
+                        </div>
+                    )}
+                </div>
+
+                {/* SUGGESTIONS DROPDOWN */}
+                {showSuggestions && locationSuggestions.length > 0 && (
+                    <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+                        {locationSuggestions.map((place, index) => (
+                            <button
+                                key={index}
+                                onClick={() => handleLocationSelect(place)}
+                                className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm text-gray-700 border-b border-gray-100 last:border-0 flex items-start gap-2"
+                            >
+                                <MapPin size={16} className="mt-0.5 text-gray-400 shrink-0"/>
+                                <span className="line-clamp-1">{place.display_name}</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+             </div>
+
              <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className="text-sm font-bold text-gray-700">Resource Availability</label>
                     <select name="resource_availability" onChange={handleInputChange} className="w-full p-3 border rounded-lg bg-white mt-1">
-                        <option value="Low">Low</option>
                         <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
                         <option value="High">High</option>
                     </select>
                 </div>
@@ -132,7 +233,7 @@ const CreateProject = () => {
         {/* AI CLASSIFICATION CARD */}
         <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-teal-600"/> AI SDG Classification</h2>
+             <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-teal-600"/> AI SDG Classification</h2>
            </div>
 
            {aiResults.length === 0 ? (
@@ -151,7 +252,7 @@ const CreateProject = () => {
                 
                 <div className="flex flex-wrap gap-3">
                   {aiResults.map((res, idx) => {
-                    const isSelected = selectedSDGs.includes(res.sdg);
+                    const isSelected = selectedSDGs.includes(String(res.sdg));
                     return (
                         <div 
                           key={idx}
@@ -168,7 +269,7 @@ const CreateProject = () => {
                            
                            <div>
                               <p className={`font-bold text-sm ${isSelected ? 'text-green-900' : 'text-gray-700'}`}>SDG {res.sdg}</p>
-                              <p className="text-xs text-gray-500">{(res.confidence * 100).toFixed(1)}% Match</p>
+                              <p className="text-xs text-gray-500">{(Number(res.confidence) * 100).toFixed(1)}% Match</p>
                            </div>
 
                            {isSelected && <CheckCircle size={18} className="text-green-600 ml-2"/>}
@@ -199,7 +300,7 @@ const CreateProject = () => {
         </div>
 
         <div className="flex justify-end gap-4">
-           <button onClick={() => navigate('/dashboard')} className="px-6 py-3 text-gray-600 font-bold hover:bg-gray-100 rounded-lg transition">Cancel</button>
+           <button onClick={() => navigate('/projects')} className="px-6 py-3 text-gray-600 font-bold hover:bg-gray-100 rounded-lg transition">Cancel</button>
            <button onClick={handleSubmit} disabled={isSubmitting} className="px-8 py-3 bg-teal-600 text-white rounded-lg font-bold hover:bg-teal-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
               {isSubmitting && <Loader2 className="animate-spin" size={18}/>}
               {isSubmitting ? "Creating..." : "Create Project"}

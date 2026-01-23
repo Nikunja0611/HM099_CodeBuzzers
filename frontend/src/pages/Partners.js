@@ -1,3 +1,4 @@
+// Partners.js
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { Search, MapPin, Building, Loader2, Filter, ChevronDown, Plus } from 'lucide-react';
@@ -29,17 +30,24 @@ const Partners = () => {
   const uniqueTypes = ['All Types', 'NGO', 'Startup', 'Government'];
   const sdgOptions = ['All SDGs', ...Array.from({length: 17}, (_, i) => `SDG ${i+1}`)];
 
+  const normalizeInterestsToString = (interests) => {
+    if (!interests) return '';
+    if (Array.isArray(interests)) return interests.join(', ');
+    return String(interests);
+  };
+
   const filteredPartners = partners.filter(p => {
-    const matchesSearch = 
-      (p.orgName && p.orgName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (p.skills && p.skills.toLowerCase().includes(searchTerm.toLowerCase()));
+    const org = (p.orgName || '').toLowerCase();
+    const skills = (p.skills || '').toLowerCase();
+    const matchesSearch = org.includes(searchTerm.toLowerCase()) || skills.includes(searchTerm.toLowerCase());
 
     const matchesType = selectedType === 'All Types' || p.role === selectedType;
     
-    // Check if interests string contains the SDG number
+    // Check if interests string or array contains the SDG number
     const sdgNum = selectedSDG.replace('SDG ', '');
+    let interestsStr = normalizeInterestsToString(p.interests);
     const matchesSDG = selectedSDG === 'All SDGs' || 
-      (p.interests && p.interests.includes(sdgNum));
+       interestsStr.includes(`SDG ${sdgNum}`) || interestsStr.split(/[,\s]+/).some(tok => tok === sdgNum);
 
     return matchesSearch && matchesType && matchesSDG;
   });

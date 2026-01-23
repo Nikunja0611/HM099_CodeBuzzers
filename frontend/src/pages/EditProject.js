@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api';
 import { 
-  Sparkles, Save, ArrowLeft, Trash2, Plus, Loader2, AlertCircle 
+  Sparkles, Save, ArrowLeft, Trash2, Plus, Loader2, AlertCircle, MapPin 
 } from 'lucide-react';
 
 const EditProject = () => {
@@ -11,23 +11,24 @@ const EditProject = () => {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Form State
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     status: 'Planning',
     resource_availability: 'Medium',
-    budget_pct: 0
+    budget_pct: 0,
+    location: '' // Added location state
   });
   
   const [milestones, setMilestones] = useState([]);
-  
-  // AI State
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResults, setAiResults] = useState([]);
   const [selectedSDGs, setSelectedSDGs] = useState([]);
+  
+  // State for Confidence
+  const [currentConfidence, setCurrentConfidence] = useState(0); 
+  const [currentScores, setCurrentScores] = useState({});
 
-  // 1. Fetch Existing Data
   useEffect(() => {
     const fetchProject = async () => {
       try {
@@ -39,17 +40,20 @@ const EditProject = () => {
             description: data.description || '',
             status: data.status || 'Planning',
             resource_availability: data.resource_availability || 'Medium',
-            budget_pct: data.budget_pct || 0
+            budget_pct: data.budget_pct || 0,
+            location: data.location || '' // Load existing location
         });
         
         setMilestones(data.milestones || []);
         
-        // Handle SDG array or single string
         if (Array.isArray(data.sdg)) {
             setSelectedSDGs(data.sdg);
         } else if (data.sdg) {
             setSelectedSDGs([data.sdg]);
         }
+
+        setCurrentConfidence(data.confidence || 0);
+        setCurrentScores(data.sdg_scores || {});
         
       } catch (err) {
         console.error("Failed to load project", err);
@@ -60,8 +64,6 @@ const EditProject = () => {
     };
     fetchProject();
   }, [id]);
-
-  // --- Handlers ---
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -82,10 +84,11 @@ const EditProject = () => {
   };
 
   const toggleSDG = (sdgVal) => {
+    const val = String(sdgVal);
     setSelectedSDGs(prev => 
-        prev.includes(sdgVal) 
-        ? prev.filter(s => s !== sdgVal)
-        : [...prev, sdgVal]
+        prev.includes(val) 
+        ? prev.filter(s => s !== val)
+        : [...prev, val]
     );
   };
 
@@ -97,9 +100,19 @@ const EditProject = () => {
       const results = Array.isArray(res.data) ? res.data : [res.data];
       setAiResults(results);
       
-      // Auto-select detected SDGs
       if (results.length > 0) {
-          setSelectedSDGs(results.map(r => r.sdg));
+          const detected = results.map(r => String(r.sdg));
+          setSelectedSDGs(detected);
+          
+          const topResult = results[0];
+          setCurrentConfidence((topResult.confidence * 100).toFixed(0));
+          
+          // Update scores map
+          const newScores = {};
+          results.forEach(r => {
+              newScores[String(r.sdg)] = (r.confidence * 100).toFixed(0);
+          });
+          setCurrentScores(newScores);
       }
     } catch (error) {
       console.error(error);
@@ -116,12 +129,13 @@ const EditProject = () => {
             ...formData,
             milestones,
             sdg: selectedSDGs,
-            // Impact score will be recalculated by backend logic or kept as is
+            confidence: currentConfidence,
+            sdg_scores: currentScores 
         };
 
         await api.put(`/projects/${id}`, payload);
         alert("✅ Project Updated Successfully!");
-        navigate(`/projects/${id}`); // Go back to details page
+        navigate(`/projects/${id}`); 
     } catch (error) {
         console.error("Update failed", error);
         alert("Failed to update project.");
@@ -136,7 +150,6 @@ const EditProject = () => {
     <div className="min-h-screen bg-gray-50 p-8 font-sans">
       <div className="max-w-4xl mx-auto space-y-6">
         
-        {/* Header */}
         <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold text-gray-900">Edit Project</h1>
             <button onClick={() => navigate(`/projects/${id}`)} className="text-gray-500 hover:text-gray-700 flex items-center gap-1 text-sm font-medium">
@@ -144,7 +157,7 @@ const EditProject = () => {
             </button>
         </div>
 
-        {/* DETAILS CARD */}
+        {/* DETAILS FORM */}
         <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
            <h2 className="text-xl font-bold mb-6 text-gray-800">Core Details</h2>
            <div className="space-y-5">
@@ -158,6 +171,22 @@ const EditProject = () => {
                 <textarea name="description" value={formData.description} onChange={handleInputChange} rows="5" className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" />
              </div>
              
+             {/* NEW LOCATION FIELD */}
+             <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Target Location</label>
+                <div className="relative">
+                    <MapPin className="absolute left-3 top-3.5 text-gray-400" size={18}/>
+                    <input 
+                        name="location" 
+                        value={formData.location} 
+                        onChange={handleInputChange} 
+                        placeholder="e.g. Pune, India"
+                        className="w-full pl-10 p-3 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" 
+                    />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">This helps AI match you with local partners.</p>
+             </div>
+
              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">Status</label>
@@ -184,16 +213,15 @@ const EditProject = () => {
            </div>
         </div>
 
-        {/* AI CLASSIFICATION CARD */}
+        {/* AI CLASSIFICATION */}
         <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-teal-600"/> SDG Classification</h2>
-              <button onClick={handleReClassify} disabled={aiLoading} className="text-sm bg-teal-50 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-100 transition">
-                  {aiLoading ? "Analyzing..." : "Re-Analyze Description"}
-              </button>
+             <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-teal-600"/> SDG Classification</h2>
+             <button onClick={handleReClassify} disabled={aiLoading} className="text-sm bg-teal-50 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-100 transition">
+                 {aiLoading ? "Analyzing..." : "Re-Analyze Description"}
+             </button>
            </div>
-            
-           {/* Display Selected SDGs */}
+           
            <div className="space-y-4">
                {selectedSDGs.length > 0 && (
                    <div className="flex flex-wrap gap-2">
@@ -206,7 +234,6 @@ const EditProject = () => {
                    </div>
                )}
 
-               {/* AI Results Display (if newly analyzed) */}
                {aiResults.length > 0 && (
                    <div className="bg-blue-50 p-4 rounded-lg mt-4">
                        <p className="text-sm text-blue-800 font-bold mb-2 flex items-center gap-2">
@@ -216,10 +243,10 @@ const EditProject = () => {
                            {aiResults.map((res, i) => (
                                <button 
                                    key={i}
-                                   onClick={() => toggleSDG(res.sdg)}
-                                   className={`px-3 py-1 rounded-lg border text-sm font-medium transition ${selectedSDGs.includes(res.sdg) ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-600 hover:border-green-400'}`}
+                                   onClick={() => toggleSDG(String(res.sdg))}
+                                   className={`px-3 py-1 rounded-lg border text-sm font-medium transition ${selectedSDGs.includes(String(res.sdg)) ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-600 hover:border-green-400'}`}
                                >
-                                   SDG {res.sdg} ({Math.round(res.confidence * 100)}%)
+                                   SDG {res.sdg} ({Math.round(Number(res.confidence) * 100)}%)
                                </button>
                            ))}
                        </div>
@@ -228,7 +255,7 @@ const EditProject = () => {
            </div>
         </div>
 
-        {/* MILESTONES CARD */}
+        {/* MILESTONES */}
         <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
            <h2 className="text-xl font-bold mb-4">Milestones</h2>
            <div className="space-y-3">
