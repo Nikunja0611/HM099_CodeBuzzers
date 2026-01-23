@@ -1,6 +1,14 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutGrid, FolderKanban, Users, BarChart3, LogOut } from 'lucide-react';
+import { 
+  LayoutGrid, 
+  FolderKanban, 
+  Users, 
+  BarChart3, 
+  LogOut, 
+  Handshake, 
+  Coins 
+} from 'lucide-react';
 import { signOut } from 'firebase/auth'; 
 import { auth } from '../firebase';       
 
@@ -41,6 +49,9 @@ const Navbar = ({ user }) => {
           { name: 'Dashboard', path: '/dashboard', icon: <LayoutGrid size={18}/> },
           { name: 'Projects', path: '/projects', icon: <FolderKanban size={18}/> },
           { name: 'Partners', path: '/partners', icon: <Users size={18}/> },
+          // New Links Added Here
+          { name: 'Proposals', path: '/proposals/partnership', icon: <Handshake size={18}/> },
+          { name: 'Grants', path: '/proposals/grant', icon: <Coins size={18}/> },
           { name: 'Impact', path: '/impact', icon: <BarChart3 size={18}/> },
         ].map((item) => (
           <Link 
@@ -65,7 +76,6 @@ const Navbar = ({ user }) => {
       <div className="flex items-center gap-4">
         {/* Role Badge */}
         <div className="flex flex-col items-end">
-          
           <span className="text-xs bg-teal-50 text-teal-700 px-3 py-1 rounded-full font-bold border border-teal-100 uppercase tracking-wide shadow-sm">
             {user?.role || 'Guest'}
           </span>

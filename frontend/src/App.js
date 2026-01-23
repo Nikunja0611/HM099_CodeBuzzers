@@ -13,11 +13,13 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CreateProject from './pages/CreateProject';
-import Projects from './pages/Projects';           // <--- THIS WAS MISSING
-import ProjectDetail from './pages/ProjectDetail'; // <--- THIS WAS MISSING
+import Projects from './pages/Projects';
+import ProjectDetail from './pages/ProjectDetail';
 import Partners from './pages/Partners';
 import Impact from './pages/Impact';
 import EditProject from './pages/EditProject';
+import PartnershipProposal from './pages/PartnershipProposal';
+import GrantApplication from './pages/GrantApplication';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -45,7 +47,7 @@ function App() {
         {/* Public Route: Landing Page */}
         <Route path="/" element={<LandingPage />} />
         
-        {/* Auth Routes: Redirect to Dashboard if already logged in */}
+        {/* Auth Routes */}
         <Route path="/login" element={!user ? <Login setUser={setUser} /> : <Navigate to="/dashboard" />} />
         <Route path="/register" element={!user ? <Register setUser={setUser} /> : <Navigate to="/dashboard" />} />
 
@@ -63,17 +65,22 @@ function App() {
                   {/* Project Routes */}
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/projects/:id" element={<ProjectDetail />} />
+                  <Route path="/projects/:id/edit" element={<EditProject />} />
+                  
+                  {/* Partner & Impact Routes */}
                   <Route path="/partners" element={<Partners />} />
                   <Route path="/impact" element={<Impact />} />
-                  <Route path="/projects/:id/edit" element={<EditProject />} />
 
-                  {/* Redirect unknown paths to dashboard */}
+                  {/* NEW PROPOSAL ROUTES */}
+                  <Route path="/proposals/partnership" element={<PartnershipProposal />} />
+                  <Route path="/proposals/grant" element={<GrantApplication />} />
+
+                  {/* Redirect unknown paths */}
                   <Route path="*" element={<Navigate to="/dashboard" />} />
                 </Routes>
                 <ChatWidget />
               </>
             ) : (
-              // Redirect to Landing Page if not logged in
               <Navigate to="/" replace />
             )
           } 
