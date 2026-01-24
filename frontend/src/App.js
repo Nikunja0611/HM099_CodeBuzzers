@@ -6,6 +6,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 // --- COMPONENTS ---
 import Navbar from './components/Navbar';
 import ChatWidget from './components/ChatWidget';
+import SubmissionsList from './components/SubmissionsList';
 
 // --- PAGES ---
 import LandingPage from './pages/LandingPage';

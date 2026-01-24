@@ -1,10 +1,10 @@
 import os
 import pickle
-import joblib  # Added for loading the pipeline
+import joblib
 import pandas as pd
 import numpy as np
 import certifi
-import re 
+import re
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
@@ -13,11 +13,15 @@ from datetime import datetime
 from bson.objectid import ObjectId
 from urllib.parse import quote_plus
 
+# --- NEW GOOGLE GENAI SDK ---
+from google import genai
+from google.genai import types
+
 try:
     from sentence_transformers import SentenceTransformer
     from sklearn.metrics.pairwise import cosine_similarity
 except ImportError:
-    print("⚠️ WARNING: sentence-transformers not installed. Run: pip install sentence-transformers")
+    print("⚠️ WARNING: sentence-transformers not installed.")
 
 # --- CONFIGURATION ---
 app = Flask(__name__)
@@ -25,17 +29,22 @@ app.config['SECRET_KEY'] = 'impacthub_secret'
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# --- MONGODB CONNECTION ---
+# --- GEMINI SETUP ---
+GEMINI_API_KEY = "AIzaSyCP3-IBG72cz3Cdd9eD7Fr2TW_Db8lG_so"
+genai_client = genai.Client(api_key=GEMINI_API_KEY)
+
+# --- MONGODB SETUP ---
 username = quote_plus('sonawanenikunja_db_user')
 password = quote_plus('#Nns@5643') 
 MONGO_URI = f"mongodb+srv://{username}:{password}@cluster0.fltqt43.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 try:
-    client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
-    db = client.impacthub_db
+    mongo_client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
+    db = mongo_client.impacthub_db
     projects_col = db.projects
     users_col = db.users
-    client.admin.command('ping')
+    grants_col = db.grants  # RENAMED from proposals to grants
+    mongo_client.admin.command('ping')
     print("✅ Successfully connected to MongoDB Atlas!")
 except Exception as e:
     print(f"❌ MongoDB Connection Failed: {e}")
@@ -46,7 +55,6 @@ models = {}
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, 'ml_models')
 
-# Features expected by the trained XGBoost model
 MODEL_FEATURES = [
     'milestones_completion_pct', 'time_elapsed_pct', 'collaborators',
     'resource_availability_code', 'budget_used_pct', 'sdg_confidence_avg',
@@ -54,349 +62,364 @@ MODEL_FEATURES = [
 ]
 
 try:
-    # 1. SDG Classifier
     path_sdg = os.path.join(MODEL_DIR, 'sdg_classifier_real.pkl')
     if os.path.exists(path_sdg):
         with open(path_sdg, 'rb') as f:
             models['sdg_vec'], models['sdg_clf'] = pickle.load(f)
         print("   - SDG Classifier: Loaded")
 
-    # 2. Project Status Predictor (NEW XGBOOST PIPELINE)
     path_pipeline = os.path.join(MODEL_DIR, 'project_status_predictor_pipeline.pkl')
     path_le = os.path.join(MODEL_DIR, 'label_encoder.pkl')
-    
     if os.path.exists(path_pipeline) and os.path.exists(path_le):
         models['status_pipeline'] = joblib.load(path_pipeline)
         models['label_encoder'] = joblib.load(path_le)
         print("   - Status Predictor (XGBoost): Loaded")
-    else:
-        print("   ⚠️ Status Predictor files not found. Using fallback logic.")
 
-    # 3. Partner Recommender (SBERT COMPATIBLE)
     path_rec = os.path.join(MODEL_DIR, 'partner_reccomender.pkl')
     if os.path.exists(path_rec):
         with open(path_rec, 'rb') as f:
             rec_data = pickle.load(f)
-            
-            # Check if it's the dictionary from your notebook
-            if isinstance(rec_data, dict) and 'model_type' in rec_data:
-                print(f"   - Detected {rec_data['model_type']} recommender")
-                
-                if rec_data['model_type'] == 'sbert':
-                    # Load the SBERT model specifically
-                    try:
-                        models['sbert'] = SentenceTransformer('all-MiniLM-L6-v2')
-                        models['rec_type'] = 'sbert'
-                        print("   - SBERT Model: Loaded")
-                    except Exception as e:
-                        print(f"   ❌ SBERT Load Failed: {e}")
-            
-            # Fallback for old tuples
-            elif isinstance(rec_data, tuple) or isinstance(rec_data, list):
+            if isinstance(rec_data, dict) and rec_data.get('model_type') == 'sbert':
+                models['sbert'] = SentenceTransformer('all-MiniLM-L6-v2')
+                print("   - SBERT Model: Loaded")
+            elif isinstance(rec_data, (tuple, list)):
                 models['rec_vec'] = rec_data[0]
                 models['rec_model'] = rec_data[1]
-                models['rec_type'] = 'tfidf'
-
     print("✅ AI Models Load Process Complete")
 except Exception as e:
     print(f"⚠️ Warning: Model loading error: {e}")
 
 # --- HELPER FUNCTIONS ---
-
 def serialize_doc(doc):
     if doc:
         doc['_id'] = str(doc['_id'])
     return doc
 
-def predict_sdg_logic(text):
-    if 'sdg_clf' not in models: return [(17, 0.0)]
-    try:
-        vec_text = models['sdg_vec'].transform([text])
-        probabilities = models['sdg_clf'].predict_proba(vec_text)[0]
-        results = []
-        for idx, score in enumerate(probabilities):
-            results.append((models['sdg_clf'].classes_[idx], score))
-        results.sort(key=lambda x: x[1], reverse=True)
-        top_results = [r for r in results[:3] if r[1] > 0.01]
-        if not top_results:
-            top_results.append((results[0][0], results[0][1]))
-        return top_results
-    except Exception as e:
-        print(f"AI Logic Error: {e}")
-        return [(17, 0.0)]
-
-# Feature Engineering Logic (Matches training script)
 def add_derived_features(df):
     df = df.copy()
-    # schedule variance: completion - elapsed
     df['schedule_variance'] = df['milestones_completion_pct'] - df['time_elapsed_pct']
-    # budget_efficiency: completion / budget (avoid divide by zero)
     df['budget_efficiency'] = df['milestones_completion_pct'] / (df['budget_used_pct'] / 100.0 + 1e-6)
-    # delivery_velocity: completion_pct / time_elapsed_pct (scaled)
     df['delivery_velocity'] = df['milestones_completion_pct'] / (df['time_elapsed_pct'].clip(lower=1e-6))
     return df
 
 # ==========================================
-#              AI ENDPOINTS
+#          LLM GENERATION ENDPOINTS
+# ==========================================
+
+def generate_content_safe(prompt):
+    model_candidates = ["gemini-2.5-flash", "gemini-1.5-flash-001", "gemini-pro"]
+    last_error = None
+    for model_name in model_candidates:
+        try:
+            print(f"🤖 Attempting with {model_name}...")
+            response = genai_client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    safety_settings=[
+                        types.SafetySetting(category='HARM_CATEGORY_HATE_SPEECH', threshold='BLOCK_NONE'),
+                        types.SafetySetting(category='HARM_CATEGORY_DANGEROUS_CONTENT', threshold='BLOCK_NONE'),
+                        types.SafetySetting(category='HARM_CATEGORY_HARASSMENT', threshold='BLOCK_NONE'),
+                        types.SafetySetting(category='HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold='BLOCK_NONE')
+                    ]
+                )
+            )
+            return response.text
+        except Exception as e:
+            print(f"⚠️ Failed with {model_name}: {e}")
+            last_error = e
+    raise last_error
+
+@app.route('/api/generate_draft', methods=['POST'])
+def generate_draft():
+    try:
+        data = request.json
+        project_title = data.get('title', '')
+        description = data.get('description', '')
+        draft_type = data.get('type', 'grant') # 'grant' or 'partnership'
+        partner_name = data.get('partner_name', 'Organization')
+        
+        budget_items = data.get('budget_items', [])
+        budget_summary = ", ".join([f"{item.get('item','Item')}: ${item.get('cost',0)}" for item in budget_items])
+        impact_metrics = data.get('impact_metrics', {})
+
+        if draft_type == 'grant':
+            prompt = f"""
+            Act as a professional grant writer. Write a Grant Application.
+            **Project:** {project_title}
+            **Description:** {description}
+            **Target Funder:** {partner_name}
+            **Budget:** {budget_summary}
+            **Impact:** {impact_metrics}
+            
+            **Structure:**
+            1. Executive Summary
+            2. Problem Statement
+            3. Methodology
+            4. Budget Justification
+            5. Monitoring & Evaluation
+            """
+        else: # Partnership
+            prompt = f"""
+            Act as a strategic partnership manager. Draft a Collaboration Proposal Email.
+            **My Project:** {project_title}
+            **Description:** {description}
+            **Target Partner:** {partner_name}
+            
+            **Structure:**
+            1. Professional Subject Line
+            2. Warm Introduction (We admire your work in...)
+            3. Value Proposition (Why collaborate?)
+            4. Concrete Proposal
+            5. Call to Action (Meeting request)
+            """
+
+        draft_text = generate_content_safe(prompt)
+        return jsonify({'draft': draft_text})
+
+    except Exception as e:
+        print(f"LLM Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ==========================================
+#       GRANTS & PROPOSALS CRUD
+# ==========================================
+
+@app.route('/api/grants/save', methods=['POST'])
+def save_grant():
+    try:
+        data = request.json
+        grant_id = data.get('_id')
+        
+        doc = {
+            # ADD THESE FIELDS for filtering:
+            'sender_id': data.get('sender_id'),      # CRITICAL for "My Grants" tab
+            'recipient_id': data.get('partner_id'),  # CRITICAL for Partner's Inbox
+            'recipient_name': data.get('partner_name'),
+            
+            'type': data.get('type', 'grant'),       # 'grant' or 'partnership'
+            'title': data.get('title'),
+            'content': data.get('content'),
+            'status': data.get('status', 'Draft'),
+            'budget_data': data.get('budget_data', []),
+            'updated_at': datetime.now()
+        }
+
+        if not grant_id:
+            doc['created_at'] = datetime.now()
+            result = grants_col.insert_one(doc)
+            return jsonify({'msg': 'Draft saved', 'id': str(result.inserted_id)})
+        else:
+            grants_col.update_one({'_id': ObjectId(grant_id)}, {'$set': doc})
+            return jsonify({'msg': 'Draft updated', 'id': grant_id})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500@app.route('/api/grants/submit', methods=['POST'])
+def submit_grant():
+    try:
+        data = request.json
+        # If it's a new submission directly
+        if '_id' not in data or not data['_id']:
+             data['status'] = 'Submitted'
+             data['created_at'] = datetime.now()
+             data['submitted_at'] = datetime.now()
+             result = grants_col.insert_one(data)
+             return jsonify({'msg': 'Submitted successfully', 'id': str(result.inserted_id)})
+        
+        # Updating existing draft to submitted
+        grants_col.update_one(
+            {'_id': ObjectId(data['_id'])}, 
+            {'$set': {'status': 'Submitted', 'submitted_at': datetime.now(), 'content': data.get('content')}}
+        )
+        return jsonify({'msg': 'Submitted successfully', 'id': data['_id']})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/submissions', methods=['GET'])
+def get_submissions():
+    """
+    Fetch items with filtering for Tabs (Grants vs Proposals) and Users (Sent vs Received).
+    Usage: /api/submissions?type=grant&user_id=123&view=sent
+    """
+    try:
+        # Get query parameters
+        doc_type = request.args.get('type') # 'grant' or 'partnership'
+        user_id = request.args.get('user_id') 
+        view = request.args.get('view', 'sent') # 'sent' or 'received'
+
+        query = {}
+        
+        # 1. Filter by Type (Grant vs Proposal)
+        if doc_type:
+            query['type'] = doc_type
+        
+        # 2. Filter by User (Real-time security)
+        if user_id:
+            if view == 'received':
+                # Show items SENT TO this user (Inbox)
+                query['recipient_id'] = user_id
+                query['status'] = 'Submitted' # Only show submitted items, not drafts
+            else:
+                # Show items CREATED BY this user (My Work)
+                query['sender_id'] = user_id 
+
+        # Fetch from 'grants' collection
+        submissions = list(grants_col.find(query).sort('updated_at', -1))
+        return jsonify([serialize_doc(p) for p in submissions])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ==========================================
+#          EXISTING ML ENDPOINTS
 # ==========================================
 
 @app.route('/api/predict_sdg', methods=['POST'])
 def predict_sdg():
     data = request.json
     text = data.get('description', '')
-    predictions = predict_sdg_logic(text)
-    response = [{'sdg': str(p[0]), 'confidence': float(p[1])} for p in predictions]
-    return jsonify(response)
+    if 'sdg_clf' not in models: return jsonify([])
+    try:
+        vec_text = models['sdg_vec'].transform([text])
+        probabilities = models['sdg_clf'].predict_proba(vec_text)[0]
+        results = [(models['sdg_clf'].classes_[i], prob) for i, prob in enumerate(probabilities)]
+        results.sort(key=lambda x: x[1], reverse=True)
+        return jsonify([{'sdg': str(r[0]), 'confidence': float(r[1])} for r in results[:3]])
+    except:
+        return jsonify([])
 
 @app.route('/api/predict_impact', methods=['POST'])
 def predict_impact():
     data = request.json
-    
-    # Check if new model exists
-    if 'status_pipeline' in models and 'label_encoder' in models:
+    if 'status_pipeline' in models:
         try:
-            # 1. Map Resource Availability Text -> Code
             ra_map = {"Low": 0, "Medium": 1, "High": 2}
-            ra_val = ra_map.get(data.get('resource_availability', 'Medium'), 1)
-
-            # 2. Construct Base DataFrame
-            input_payload = {
-                'milestones_completion_pct': float(data.get('milestones_pct', 0.0)),
-                'time_elapsed_pct': float(data.get('time_elapsed_pct', 0.0)),
+            df_in = pd.DataFrame([{
+                'milestones_completion_pct': float(data.get('milestones_pct', 0)),
+                'time_elapsed_pct': float(data.get('time_elapsed_pct', 0)),
                 'collaborators': int(data.get('collaborators', 1)),
-                'resource_availability_code': int(ra_val),
-                'budget_used_pct': float(data.get('budget_pct', 0.0)),
-                # Default to 0.85 if not provided (High confidence assumption)
-                'sdg_confidence_avg': float(data.get('sdg_confidence', 0.85))
-            }
-            
-            df_in = pd.DataFrame([input_payload])
-
-            # 3. Add Derived Features (CRITICAL: Must match training logic)
+                'resource_availability_code': ra_map.get(data.get('resource_availability', 'Medium'), 1),
+                'budget_used_pct': float(data.get('budget_pct', 0)),
+                'sdg_confidence_avg': 0.85
+            }])
             df_in = add_derived_features(df_in)
-
-            # 4. Filter columns to match model expectation
-            X_in = df_in[MODEL_FEATURES]
-            X_in_array = X_in.values
-
-            # 5. Predict
-            pipeline = models['status_pipeline']
-            le = models['label_encoder']
-            
-            # Get probabilities
-            probs = pipeline.predict_proba(X_in_array)[0]
-            pred_idx = int(np.argmax(probs))
-            
-            # Get class label and confidence score
-            status_label = le.inverse_transform([pred_idx])[0]
-            confidence_score = float(probs[pred_idx]) * 100  # Convert to percentage
-
-            return jsonify({'status': status_label, 'confidence': round(confidence_score, 1)})
-
+            probs = models['status_pipeline'].predict_proba(df_in[MODEL_FEATURES].values)[0]
+            pred_idx = np.argmax(probs)
+            return jsonify({
+                'status': models['label_encoder'].inverse_transform([pred_idx])[0],
+                'confidence': round(float(probs[pred_idx]) * 100, 1)
+            })
         except Exception as e:
-            print(f"❌ AI Status Prediction Error: {e}")
-            # Fall through to default if error occurs
-    
-    # Fallback / Default
+            print(f"Impact Error: {e}")
     return jsonify({'status': "On Track", 'confidence': 85.0})
-
-# ==========================================
-#       PARTNER RECOMMENDATIONS (SBERT)
-# ==========================================
 
 @app.route('/api/projects/<id>/recommendations', methods=['GET'])
 def get_recommendations(id):
     try:
         project = projects_col.find_one({'_id': ObjectId(id)})
         if not project: return jsonify([])
-
-        project_title = project.get('title', '')
-        project_desc = project.get('description', '')
-        project_text = f"{project_title} {project_desc}"
-        
-        # 1. Broad Database Filter (Get ~500 candidates)
-        project_sdg = project.get('sdg')
-        target_sdgs = [str(s) for s in project_sdg] if isinstance(project_sdg, list) else ([str(project_sdg)] if project_sdg else ["17"])
-        
-        or_conditions = []
-        or_conditions.append({"skills": {"$regex": project_title.split(" ")[0] if project_title else "Impact", "$options": "i"}})
-        for sdg in target_sdgs:
-            or_conditions.append({"interests": {"$regex": f"SDG {sdg}\\b", "$options": "i"}})
-            or_conditions.append({"interests": {"$regex": f"\\b{sdg}\\b", "$options": "i"}})
-
-        partners = list(users_col.find({"$or": or_conditions}, 
-            {"password": 0, "created_at": 0, "phone": 0}
-        ).limit(500))
-
-        # Backup if too few results
-        if len(partners) < 5:
-            partners = list(users_col.find({}, {"password": 0}).sort('_id', -1).limit(100))
-
-        scored_partners = []
-
-        # 2. SBERT Semantic Scoring (High Accuracy)
+        partners = list(users_col.find({}, {"password": 0}).limit(100))
         if 'sbert' in models and partners:
-            try:
-                # Encode Project
-                project_embedding = models['sbert'].encode([project_text]) # Shape: (1, 384)
-
-                # Batch Encode Partners (Faster than loop)
-                partner_texts = [f"{p.get('description','')} {p.get('skills','')} {p.get('interests','')}" for p in partners]
-                partner_embeddings = models['sbert'].encode(partner_texts) # Shape: (N, 384)
-
-                # Calculate Cosine Similarity
-                similarities = cosine_similarity(project_embedding, partner_embeddings)[0]
-
-                # Assign scores
-                for idx, partner in enumerate(partners):
-                    score = float(similarities[idx])
-                    partner['match_score'] = round(max(score * 100, 0), 2) # Ensure positive
-                    scored_partners.append(partner)
-
-                scored_partners.sort(key=lambda x: x['match_score'], reverse=True)
-
-            except Exception as e:
-                print("SBERT scoring error:", e)
-                # Fallback logic if SBERT fails
-                for p in partners: p['match_score'] = 60.0
-                scored_partners = partners
-        
-        # 3. Legacy TF-IDF Fallback
-        elif 'rec_vec' in models and partners:
-            try:
-                project_vec = models['rec_vec'].transform([project_text])
-                for partner in partners:
-                    partner_text = f"{partner.get('description','')} {partner.get('skills','')} {partner.get('interests','')}"
-                    partner_vec = models['rec_vec'].transform([partner_text])
-                    score = float(np.dot(project_vec.toarray(), partner_vec.toarray().T)[0][0])
-                    partner['match_score'] = round(min(score * 100, 100), 2)
-                    scored_partners.append(partner)
-                scored_partners.sort(key=lambda x: x['match_score'], reverse=True)
-            except Exception:
-                scored_partners = partners
-        else:
-            scored_partners = partners
-
-        return jsonify([serialize_doc(p) for p in scored_partners[:5]])
-
+            proj_desc = project.get('description', '') + " " + project.get('title', '')
+            proj_emb = models['sbert'].encode([proj_desc])
+            partner_texts = [p.get('description', '') + " " + p.get('interests', '') for p in partners]
+            partner_embs = models['sbert'].encode(partner_texts)
+            sims = cosine_similarity(proj_emb, partner_embs)[0]
+            for i, p in enumerate(partners):
+                p['match_score'] = round(float(sims[i]) * 100, 1)
+            partners.sort(key=lambda x: x['match_score'], reverse=True)
+        return jsonify([serialize_doc(p) for p in partners[:5]])
     except Exception as e:
-        print("Partner Recommendation Error:", e)
         return jsonify([])
-
-# ==========================================
-#            OTHER ENDPOINTS
-# ==========================================
 
 @app.route('/api/projects', methods=['GET', 'POST'])
 def handle_projects():
     if request.method == 'POST':
-        project_data = request.json
-        project_data['created_at'] = datetime.now()
-        if 'status' not in project_data: project_data['status'] = 'Planning'
-        if 'confidence' in project_data:
-            try:
-                val = float(project_data['confidence'])
-                if val < 1: val = val * 100
-                project_data['confidence'] = int(val)
-            except:
-                project_data['confidence'] = 0
-        result = projects_col.insert_one(project_data)
-        return jsonify({'msg': 'Project Saved', 'id': str(result.inserted_id)}), 201
-    else:
-        projects = list(projects_col.find().sort('created_at', -1))
-        return jsonify([serialize_doc(p) for p in projects])
+        data = request.json
+        data['created_at'] = datetime.now()
+        data['status'] = 'Planning'
+        res = projects_col.insert_one(data)
+        return jsonify({'msg': 'Saved', 'id': str(res.inserted_id)}), 201
+    projects = list(projects_col.find().sort('created_at', -1))
+    return jsonify([serialize_doc(p) for p in projects])
 
 @app.route('/api/projects/<id>', methods=['GET', 'PUT'])
 def handle_single_project(id):
     if request.method == 'PUT':
-        data = request.json
-        if '_id' in data: del data['_id']
-        projects_col.update_one({'_id': ObjectId(id)}, {'$set': data})
+        projects_col.update_one({'_id': ObjectId(id)}, {'$set': request.json})
         return jsonify({'msg': 'Updated'})
-    project = projects_col.find_one({'_id': ObjectId(id)})
-    if project: return jsonify(serialize_doc(project))
-    return jsonify({'error': 'Not found'}), 404
+    p = projects_col.find_one({'_id': ObjectId(id)})
+    return jsonify(serialize_doc(p)) if p else (jsonify({'error': 'Not found'}), 404)
 
 @app.route('/api/partners', methods=['GET'])
 def get_partners():
-    partners = list(users_col.find({}, {'password': 0}).limit(100))
-    return jsonify([serialize_doc(p) for p in partners])
+    return jsonify([serialize_doc(p) for p in users_col.find({}, {'password': 0})])
 
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
-    total = projects_col.count_documents({})
-    active = projects_col.count_documents({'status': 'Active'})
-    partners = users_col.count_documents({})
-    pipeline = [
-        {"$project": {"sdg": {"$cond": {"if": {"$isArray": "$sdg"}, "then": "$sdg", "else": ["$sdg"]}}}},
-        {"$unwind": "$sdg"},
-        {"$group": {"_id": "$sdg", "count": {"$sum": 1}}}
-    ]
-    sdg_dist = list(projects_col.aggregate(pipeline))
-    return jsonify({'total': total, 'active': active, 'partners': partners, 'sdg_dist': sdg_dist})
+    return jsonify({
+        'total': projects_col.count_documents({}), 
+        'active': projects_col.count_documents({'status': 'Active'}),
+        'partners': users_col.count_documents({}),
+        'sdg_dist': [] 
+    })
 
 @app.route('/api/register', methods=['POST'])
-def register_user():
-    user_data = request.json
-    if users_col.find_one({"email": user_data['email']}):
-        return jsonify({"error": "User already exists"}), 400
-    users_col.insert_one(user_data)
-    return jsonify({"msg": "User registered"}), 201
+def register():
+    if users_col.find_one({"email": request.json['email']}):
+        return jsonify({"error": "Exists"}), 400
+    users_col.insert_one(request.json)
+    return jsonify({"msg": "Registered"}), 201
+
 
 # --- ADMIN ENDPOINTS ---
 
 @app.route('/api/admin/stats', methods=['GET'])
+
 def get_admin_stats():
-    # 1. User Stats & Distribution
+
     total_users = users_col.count_documents({})
-    
-    # Aggregation pipeline to count users by Role (NGO, Startup, etc.)
-    user_dist_pipeline = [
-        {"$group": {"_id": "$role", "count": {"$sum": 1}}}
-    ]
+
+    user_dist_pipeline = [{"$group": {"_id": "$role", "count": {"$sum": 1}}}]
+
     user_distribution = list(users_col.aggregate(user_dist_pipeline))
-    # Format for frontend: [{'name': 'NGO', 'value': 10}, ...]
+
     formatted_dist = [{'name': d['_id'] or 'Unknown', 'value': d['count']} for d in user_distribution]
 
-    # 2. Project Stats
     total_projects = projects_col.count_documents({})
-    active_projects = projects_col.count_documents({'status': 'Active'}) # Specifically counting ACTIVE
-    
-    # 3. AI Model Health Check
+
+    active_projects = projects_col.count_documents({'status': 'Active'})
+
     ai_status = {
+
         'sdg_classifier': 'Active' if 'sdg_clf' in models else 'Offline',
+
         'status_predictor': 'Active' if 'status_pipeline' in models else 'Offline',
-        'recommender': 'Active' if 'sbert' in models or 'rec_vec' in models else 'Offline'
+
+        'recommender': 'Active' if 'sbert' in models else 'Offline'
+
     }
-    
-    # 4. Recent Activity (Last 5 users or projects)
-    # Fetching last 5 actions for the "Activity Log" feature
+
     recent_projects = list(projects_col.find({}, {'title': 1, 'created_at': 1}).sort('created_at', -1).limit(5))
-    
+
     return jsonify({
+
         'total_users': total_users,
-        'user_distribution': formatted_dist, # NEW: Sends breakdown of user types
+
+        'user_distribution': formatted_dist,
+
         'total_projects': total_projects,
-        'active_projects': active_projects,  # NEW: Sends specifically active count
+
+        'active_projects': active_projects,
+
         'ai_status': ai_status,
+
         'recent_activity': [serialize_doc(p) for p in recent_projects]
+
     })
 
-@app.route('/api/admin/users', methods=['GET'])
-def get_all_users():
-    # Fetch all users but exclude passwords
-    users = list(users_col.find({}, {'password': 0}).sort('_id', -1))
-    return jsonify([serialize_doc(u) for u in users])
 
-@app.route('/api/admin/users/<id>', methods=['DELETE'])
-def delete_user(id):
-    users_col.delete_one({'_id': ObjectId(id)})
-    return jsonify({'msg': 'User deleted'})
-
-@app.route('/api/admin/projects/<id>', methods=['DELETE'])
-def delete_project(id):
-    projects_col.delete_one({'_id': ObjectId(id)})
-    return jsonify({'msg': 'Project deleted'})
 
 if __name__ == '__main__':
+
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
