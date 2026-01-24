@@ -190,7 +190,7 @@ const Dashboard = () => {
              </h3>
              <button className="text-gray-400 hover:text-teal-600"><TrendingUp size={18}/></button>
           </div>
-          <div className="h-72 w-full relative">
+          <div className="h-72 w-full relative"  style={{ width: "100%", height: "300px" }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={chartData} innerRadius={80} outerRadius={110} paddingAngle={5} dataKey="value" stroke="none" cornerRadius={8}>
@@ -212,7 +212,7 @@ const Dashboard = () => {
                <Zap size={20} className="text-gray-400"/> Project Status
              </h3>
           </div>
-          <div className="h-72 w-full">
+          <div className="h-72 w-full"  style={{ width: "100%", height: "300px" }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart layout="vertical" data={statusData} barSize={40}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f3f4f6" />
